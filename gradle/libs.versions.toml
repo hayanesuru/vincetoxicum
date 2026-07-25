@@ -1,0 +1,60 @@
+[versions]
+asm = "9.10.1"
+gson = "2.14.0"
+mapping-io = "0.8.0"
+stitch = "0.6.2"
+vineflower = "1.12.0"
+classtweaker = "0.1.0"
+unpick = "3.0.0-beta.13"
+
+fastutil = "8.5.18"
+netty-all = "4.2.15.Final"
+commons-io = "2.20.0"
+commons-lang3 = "3.19.0"
+joml = "1.10.8"
+lz4-java = "1.11.0"
+msal4j = "1.24.1"
+jspecify-annotations = "1.0.0"
+jopt-simple = "5.0.4"
+guava = "33.6.0-jre"
+jsr305 = "3.0.2"
+slf4j-api = "2.0.18"
+
+[libraries]
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+mappingio = { module = "net.fabricmc:mapping-io", version.ref = "mapping-io" }
+stitch = { module = "net.fabricmc:stitch", version.ref = "stitch" }
+classtweaker = { module = "net.fabricmc:class-tweaker", version.ref = "classtweaker" }
+vineflower = { module = "org.vineflower:vineflower", version.ref = "vineflower" }
+unpick = { module = "net.fabricmc.unpick:unpick", version.ref = "unpick" }
+
+fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
+netty-all = { module = "io.netty:netty-all", version.ref = "netty-all" }
+commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+joml = { module = "org.joml:joml", version.ref = "joml" }
+lz4 = { module = "at.yawk.lz4:lz4-java", version.ref = "lz4-java" }
+msal4j = { module = "com.microsoft.azure:msal4j", version.ref = "msal4j" }
+jspecify-annotations = { module = "org.jspecify:jspecify", version.ref = "jspecify-annotations" }
+jopt-simple = { module = "net.sf.jopt-simple:jopt-simple", version.ref = "jopt-simple" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j-api" }
+
+[bundles]
+server = [
+    "fastutil",
+    "netty-all",
+    "commons-io",
+    "commons-lang3",
+    "joml",
+    "lz4",
+    "msal4j",
+    "gson",
+    "jspecify-annotations",
+    "jopt-simple",
+    "guava",
+    "jsr305",
+    "slf4j-api"
+]

@@ -1,0 +1,741 @@
+From 0000000000000000000000000000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: hayanesuru <hayanesuru@outlook.jp>
+Date: Wed, 8 Jul 2026 16:32:20 +0900
+Subject: [PATCH] remove oshi
+
+SPDX-License-Identifier: Unlicense
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+diff --git a/net/minecraft/SystemReport.java b/net/minecraft/SystemReport.java
+index 0c64be90c67fa059f12178c0595779d43f0067ef59887da820c452aa571f9b13..114126963a867dbe28fc084d036d96e1b907b5a0180d3219bb2180b90906054b 100644
+--- a/net/minecraft/SystemReport.java
++++ b/net/minecraft/SystemReport.java
+@@ -17,16 +17,18 @@ import java.util.function.Supplier;
+ import java.util.stream.Collectors;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+-import oshi.SystemInfo;
+-import oshi.hardware.CentralProcessor;
+-import oshi.hardware.GlobalMemory;
+-import oshi.hardware.GraphicsCard;
+-import oshi.hardware.HardwareAbstractionLayer;
+-import oshi.hardware.PhysicalMemory;
+-import oshi.hardware.VirtualMemory;
+-import oshi.hardware.CentralProcessor.ProcessorIdentifier;
+-import oshi.software.os.OSProcess;
+-import oshi.software.os.OperatingSystem;
++// Haya start - remove oshi
++// import oshi.SystemInfo;
++// import oshi.hardware.CentralProcessor;
++// import oshi.hardware.GlobalMemory;
++// import oshi.hardware.GraphicsCard;
++// import oshi.hardware.HardwareAbstractionLayer;
++// import oshi.hardware.PhysicalMemory;
++// import oshi.hardware.VirtualMemory;
++// import oshi.hardware.CentralProcessor.ProcessorIdentifier;
++// import oshi.software.os.OSProcess;
++// import oshi.software.os.OperatingSystem;
++// Haya end - remove oshi
+ 
+ public class SystemReport {
+     public static final long BYTES_PER_MEBIBYTE = 1048576L;
+@@ -90,12 +92,14 @@ public class SystemReport {
+         this.setDetail("CPUs", () -> {
+             return String.valueOf(Runtime.getRuntime().availableProcessors());
+         });
+-        this.ignoreErrors("hardware", () -> {
+-            this.putHardware(new SystemInfo());
+-        });
+-        this.ignoreErrors("software", () -> {
+-            this.putSoftware(new SystemInfo());
+-        });
++        // Haya start - remove oshi
++        // this.ignoreErrors("hardware", () -> {
++        //     this.putHardware(new SystemInfo());
++        // });
++        // this.ignoreErrors("software", () -> {
++        //     this.putSoftware(new SystemInfo());
++        // });
++        // Haya end - remove oshi
+         this.setDetail("JVM Flags", () -> {
+             return printJvmFlags(arg -> {
+                 return arg.startsWith("-X");
+@@ -138,28 +142,30 @@ public class SystemReport {
+         }
+     }
+ 
+-    private void putHardware(final SystemInfo systemInfo) {
+-        HardwareAbstractionLayer hardware = systemInfo.getHardware();
+-        this.ignoreErrors("processor", () -> {
+-            this.putProcessor(hardware.getProcessor());
+-        });
+-        this.ignoreErrors("graphics", () -> {
+-            this.putGraphics(hardware.getGraphicsCards());
+-        });
+-        this.ignoreErrors("memory", () -> {
+-            this.putMemory(hardware.getMemory());
+-        });
+-        this.ignoreErrors("storage", this::putStorage);
+-    }
+-
+-    private void putSoftware(final SystemInfo systemInfo) {
+-        OperatingSystem os = systemInfo.getOperatingSystem();
+-        this.setDetail("Operating System Version", os::toString);
+-        this.setDetail("Process Elevated", os::isElevated);
+-        this.ignoreErrors("process", () -> {
+-            this.putProcessDetails(os.getCurrentProcess());
+-        });
+-    }
++    // Haya start - remove oshi
++    // private void putHardware(final SystemInfo systemInfo) {
++    //     HardwareAbstractionLayer hardware = systemInfo.getHardware();
++    //     this.ignoreErrors("processor", () -> {
++    //         this.putProcessor(hardware.getProcessor());
++    //     });
++    //     this.ignoreErrors("graphics", () -> {
++    //         this.putGraphics(hardware.getGraphicsCards());
++    //     });
++    //     this.ignoreErrors("memory", () -> {
++    //         this.putMemory(hardware.getMemory());
++    //     });
++    //     this.ignoreErrors("storage", this::putStorage);
++    // }
++    //
++    // private void putSoftware(final SystemInfo systemInfo) {
++    //     OperatingSystem os = systemInfo.getOperatingSystem();
++    //     this.setDetail("Operating System Version", os::toString);
++    //     this.setDetail("Process Elevated", os::isElevated);
++    //     this.ignoreErrors("process", () -> {
++    //         this.putProcessDetails(os.getCurrentProcess());
++    //     });
++    // }
++    // Haya end - remove oshi
+ 
+     private void ignoreErrors(final String group, final Runnable action) {
+         try {
+@@ -174,118 +180,120 @@ public class SystemReport {
+         return (float)bytes / 1048576.0F;
+     }
+ 
+-    private void putPhysicalMemory(final List<PhysicalMemory> memoryPackages) {
+-        int memorySlot = 0;
+-
+-        for (PhysicalMemory physicalMemory : memoryPackages) {
+-            String prefix = String.format(Locale.ROOT, "Memory slot #%d ", memorySlot++);
+-            this.setDetail(prefix + "capacity (MiB)", () -> {
+-                return String.format(Locale.ROOT, "%.2f", sizeInMiB(physicalMemory.getCapacity()));
+-            });
+-            this.setDetail(prefix + "clockSpeed (GHz)", () -> {
+-                return String.format(Locale.ROOT, "%.2f", (float)physicalMemory.getClockSpeed() / 1.0E9F);
+-            });
+-            this.setDetail(prefix + "type", physicalMemory::getMemoryType);
+-        }
+-    }
+-
+-    private void putVirtualMemory(final VirtualMemory virtualMemory) {
+-        this.setDetail("Virtual memory max (MiB)", () -> {
+-            return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getVirtualMax()));
+-        });
+-        this.setDetail("Virtual memory used (MiB)", () -> {
+-            return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getVirtualInUse()));
+-        });
+-        this.setDetail("Swap memory total (MiB)", () -> {
+-            return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getSwapTotal()));
+-        });
+-        this.setDetail("Swap memory used (MiB)", () -> {
+-            return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getSwapUsed()));
+-        });
+-    }
+-
+-    private void putMemory(final GlobalMemory memory) {
+-        this.ignoreErrors("physical memory", () -> {
+-            this.putPhysicalMemory(memory.getPhysicalMemory());
+-        });
+-        this.ignoreErrors("virtual memory", () -> {
+-            this.putVirtualMemory(memory.getVirtualMemory());
+-        });
+-    }
+-
+-    private void putGraphics(final List<GraphicsCard> graphicsCards) {
+-        int gpuIndex = 0;
+-
+-        for (GraphicsCard graphicsCard : graphicsCards) {
+-            String prefix = String.format(Locale.ROOT, "Graphics card #%d ", gpuIndex++);
+-            this.setDetail(prefix + "name", graphicsCard::getName);
+-            this.setDetail(prefix + "vendor", graphicsCard::getVendor);
+-            this.setDetail(prefix + "VRAM (MiB)", () -> {
+-                return String.format(Locale.ROOT, "%.2f", sizeInMiB(graphicsCard.getVRam()));
+-            });
+-            this.setDetail(prefix + "deviceId", graphicsCard::getDeviceId);
+-            this.setDetail(prefix + "versionInfo", graphicsCard::getVersionInfo);
+-        }
+-    }
+-
+-    private void putProcessor(final CentralProcessor processor) {
+-        ProcessorIdentifier processorIdentifier = processor.getProcessorIdentifier();
+-        this.setDetail("Processor Vendor", processorIdentifier::getVendor);
+-        this.setDetail("Processor Name", processorIdentifier::getName);
+-        this.setDetail("Identifier", processorIdentifier::getIdentifier);
+-        this.setDetail("Microarchitecture", processorIdentifier::getMicroarchitecture);
+-        this.setDetail("Frequency (GHz)", () -> {
+-            return String.format(Locale.ROOT, "%.2f", (float)processorIdentifier.getVendorFreq() / 1.0E9F);
+-        });
+-        this.setDetail("Number of physical packages", () -> {
+-            return String.valueOf(processor.getPhysicalPackageCount());
+-        });
+-        this.setDetail("Number of physical CPUs", () -> {
+-            return String.valueOf(processor.getPhysicalProcessorCount());
+-        });
+-        this.setDetail("Number of logical CPUs", () -> {
+-            return String.valueOf(processor.getLogicalProcessorCount());
+-        });
+-    }
+-
+-    private void putStorage() {
+-        this.putSpaceForProperty("jna.tmpdir");
+-        this.putSpaceForProperty("org.lwjgl.system.SharedLibraryExtractPath");
+-        this.putSpaceForProperty("io.netty.native.workdir");
+-        this.putSpaceForProperty("java.io.tmpdir");
+-        this.putSpaceForPath("workdir", () -> {
+-            return "";
+-        });
+-    }
+-
+-    private void putProcessDetails(final OSProcess process) {
+-        this.setDetail(
+-            "Process Loads",
+-            () -> {
+-                double userTimeSeconds = process.getUserTime() / 1000.0;
+-                double kernelTimeSeconds = process.getKernelTime() / 1000.0;
+-                double upTimeSeconds = process.getUpTime() / 1000.0;
+-                double totalTimeSeconds = kernelTimeSeconds + userTimeSeconds;
+-                return String.format(
+-                    Locale.ROOT,
+-                    "Uptime: %.0fs, user: %.0fs (%.2f%%), kernel: %.0fs (%.2f%%), total: %.0fs (%.2f%%)",
+-                    upTimeSeconds,
+-                    userTimeSeconds,
+-                    userTimeSeconds / upTimeSeconds * 100.0,
+-                    kernelTimeSeconds,
+-                    kernelTimeSeconds / upTimeSeconds * 100.0,
+-                    totalTimeSeconds,
+-                    totalTimeSeconds / upTimeSeconds * 100.0
+-                );
+-            }
+-        );
+-        this.setDetail("Process Virtual Size (MiB)", () -> {
+-            return String.format(Locale.ROOT, "%.2f", sizeInMiB(process.getVirtualSize()));
+-        });
+-        this.setDetail("Process Resident Size (MiB)", () -> {
+-            return String.format(Locale.ROOT, "%.2f", sizeInMiB(process.getResidentSetSize()));
+-        });
+-    }
++    // Haya start - remove oshi
++    // private void putPhysicalMemory(final List<PhysicalMemory> memoryPackages) {
++    //     int memorySlot = 0;
++    //
++    //     for (PhysicalMemory physicalMemory : memoryPackages) {
++    //         String prefix = String.format(Locale.ROOT, "Memory slot #%d ", memorySlot++);
++    //         this.setDetail(prefix + "capacity (MiB)", () -> {
++    //             return String.format(Locale.ROOT, "%.2f", sizeInMiB(physicalMemory.getCapacity()));
++    //         });
++    //         this.setDetail(prefix + "clockSpeed (GHz)", () -> {
++    //             return String.format(Locale.ROOT, "%.2f", (float)physicalMemory.getClockSpeed() / 1.0E9F);
++    //         });
++    //         this.setDetail(prefix + "type", physicalMemory::getMemoryType);
++    //     }
++    // }
++    //
++    // private void putVirtualMemory(final VirtualMemory virtualMemory) {
++    //     this.setDetail("Virtual memory max (MiB)", () -> {
++    //         return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getVirtualMax()));
++    //     });
++    //     this.setDetail("Virtual memory used (MiB)", () -> {
++    //         return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getVirtualInUse()));
++    //     });
++    //     this.setDetail("Swap memory total (MiB)", () -> {
++    //         return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getSwapTotal()));
++    //     });
++    //     this.setDetail("Swap memory used (MiB)", () -> {
++    //         return String.format(Locale.ROOT, "%.2f", sizeInMiB(virtualMemory.getSwapUsed()));
++    //     });
++    // }
++    //
++    // private void putMemory(final GlobalMemory memory) {
++    //     this.ignoreErrors("physical memory", () -> {
++    //         this.putPhysicalMemory(memory.getPhysicalMemory());
++    //     });
++    //     this.ignoreErrors("virtual memory", () -> {
++    //         this.putVirtualMemory(memory.getVirtualMemory());
++    //     });
++    // }
++    //
++    // private void putGraphics(final List<GraphicsCard> graphicsCards) {
++    //     int gpuIndex = 0;
++    //
++    //     for (GraphicsCard graphicsCard : graphicsCards) {
++    //         String prefix = String.format(Locale.ROOT, "Graphics card #%d ", gpuIndex++);
++    //         this.setDetail(prefix + "name", graphicsCard::getName);
++    //         this.setDetail(prefix + "vendor", graphicsCard::getVendor);
++    //         this.setDetail(prefix + "VRAM (MiB)", () -> {
++    //             return String.format(Locale.ROOT, "%.2f", sizeInMiB(graphicsCard.getVRam()));
++    //         });
++    //         this.setDetail(prefix + "deviceId", graphicsCard::getDeviceId);
++    //         this.setDetail(prefix + "versionInfo", graphicsCard::getVersionInfo);
++    //     }
++    // }
++    //
++    // private void putProcessor(final CentralProcessor processor) {
++    //     ProcessorIdentifier processorIdentifier = processor.getProcessorIdentifier();
++    //     this.setDetail("Processor Vendor", processorIdentifier::getVendor);
++    //     this.setDetail("Processor Name", processorIdentifier::getName);
++    //     this.setDetail("Identifier", processorIdentifier::getIdentifier);
++    //     this.setDetail("Microarchitecture", processorIdentifier::getMicroarchitecture);
++    //     this.setDetail("Frequency (GHz)", () -> {
++    //         return String.format(Locale.ROOT, "%.2f", (float)processorIdentifier.getVendorFreq() / 1.0E9F);
++    //     });
++    //     this.setDetail("Number of physical packages", () -> {
++    //         return String.valueOf(processor.getPhysicalPackageCount());
++    //     });
++    //     this.setDetail("Number of physical CPUs", () -> {
++    //         return String.valueOf(processor.getPhysicalProcessorCount());
++    //     });
++    //     this.setDetail("Number of logical CPUs", () -> {
++    //         return String.valueOf(processor.getLogicalProcessorCount());
++    //     });
++    // }
++    //
++    // private void putStorage() {
++    //     this.putSpaceForProperty("jna.tmpdir");
++    //     this.putSpaceForProperty("org.lwjgl.system.SharedLibraryExtractPath");
++    //     this.putSpaceForProperty("io.netty.native.workdir");
++    //     this.putSpaceForProperty("java.io.tmpdir");
++    //     this.putSpaceForPath("workdir", () -> {
++    //         return "";
++    //     });
++    // }
++    //
++    // private void putProcessDetails(final OSProcess process) {
++    //     this.setDetail(
++    //         "Process Loads",
++    //         () -> {
++    //             double userTimeSeconds = process.getUserTime() / 1000.0;
++    //             double kernelTimeSeconds = process.getKernelTime() / 1000.0;
++    //             double upTimeSeconds = process.getUpTime() / 1000.0;
++    //             double totalTimeSeconds = kernelTimeSeconds + userTimeSeconds;
++    //             return String.format(
++    //                 Locale.ROOT,
++    //                 "Uptime: %.0fs, user: %.0fs (%.2f%%), kernel: %.0fs (%.2f%%), total: %.0fs (%.2f%%)",
++    //                 upTimeSeconds,
++    //                 userTimeSeconds,
++    //                 userTimeSeconds / upTimeSeconds * 100.0,
++    //                 kernelTimeSeconds,
++    //                 kernelTimeSeconds / upTimeSeconds * 100.0,
++    //                 totalTimeSeconds,
++    //                 totalTimeSeconds / upTimeSeconds * 100.0
++    //             );
++    //         }
++    //     );
++    //     this.setDetail("Process Virtual Size (MiB)", () -> {
++    //         return String.format(Locale.ROOT, "%.2f", sizeInMiB(process.getVirtualSize()));
++    //     });
++    //     this.setDetail("Process Resident Size (MiB)", () -> {
++    //         return String.format(Locale.ROOT, "%.2f", sizeInMiB(process.getResidentSetSize()));
++    //     });
++    // }
++    // Haya end - remove oshi
+ 
+     private void putSpaceForProperty(final String env) {
+         this.putSpaceForPath(env, () -> {
+diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
+index ef65a090169f787916678152eb4929250cb72d2b7eb3ba474a7785293d9ef41a..fc3952285907a45db2f4e92f75aceb0a1e334f3fe63c663c2fda65fe650751fa 100644
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -2123,22 +2123,24 @@ public abstract class MinecraftServer
+     }
+ 
+     private void dumpNativeModules(final Path path) throws IOException {
+-        try (Writer output = Files.newBufferedWriter(path)) {
+-            List<NativeModuleLister.NativeModuleInfo> modules;
+-            try {
+-                modules = Lists.newArrayList(NativeModuleLister.listModules());
+-            } catch (Throwable t) {
+-                LOGGER.warn("Failed to list native modules", t);
+-                return;
+-            }
+-
+-            modules.sort(Comparator.comparing(NativeModuleLister.NativeModuleInfo::name, String.CASE_INSENSITIVE_ORDER));
+-
+-            for (NativeModuleLister.NativeModuleInfo module : modules) {
+-                output.write(module.toString());
+-                output.write(10);
+-            }
+-        }
++        // Haya start - remove oshi
++        // try (Writer output = Files.newBufferedWriter(path)) {
++        //     List<NativeModuleLister.NativeModuleInfo> modules;
++        //     try {
++        //         modules = Lists.newArrayList(NativeModuleLister.listModules());
++        //     } catch (Throwable t) {
++        //         LOGGER.warn("Failed to list native modules", t);
++        //         return;
++        //     }
++        //
++        //     modules.sort(Comparator.comparing(NativeModuleLister.NativeModuleInfo::name, String.CASE_INSENSITIVE_ORDER));
++        //
++        //     for (NativeModuleLister.NativeModuleInfo module : modules) {
++        //         output.write(module.toString());
++        //         output.write(10);
++        //     }
++        // }
++        // Haya end - remove oshi
+     }
+ 
+     private ProfilerFiller createProfiler() {
+diff --git a/net/minecraft/util/NativeModuleLister.java b/net/minecraft/util/NativeModuleLister.java
+index 47fc5e352643fc61c1b532cdd64b0d81229aa85f3e9eb7d6f71816d99a153024..971a030cff630366a6fd9ee32d8f5b1d9f25e340c3f8d30f6c9cdcb76d5d0f7f 100644
+--- a/net/minecraft/util/NativeModuleLister.java
++++ b/net/minecraft/util/NativeModuleLister.java
+@@ -3,17 +3,19 @@ package net.minecraft.util;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableList.Builder;
+ import com.mojang.logging.LogUtils;
+-import com.sun.jna.Memory;
+-import com.sun.jna.Native;
+-import com.sun.jna.Platform;
+-import com.sun.jna.Pointer;
+-import com.sun.jna.platform.win32.Kernel32;
+-import com.sun.jna.platform.win32.Kernel32Util;
+-import com.sun.jna.platform.win32.Version;
+-import com.sun.jna.platform.win32.Win32Exception;
+-import com.sun.jna.platform.win32.Tlhelp32.MODULEENTRY32W;
+-import com.sun.jna.ptr.IntByReference;
+-import com.sun.jna.ptr.PointerByReference;
++// Haya start - remove oshi
++// import com.sun.jna.Memory;
++// import com.sun.jna.Native;
++// import com.sun.jna.Platform;
++// import com.sun.jna.Pointer;
++// import com.sun.jna.platform.win32.Kernel32;
++// import com.sun.jna.platform.win32.Kernel32Util;
++// import com.sun.jna.platform.win32.Version;
++// import com.sun.jna.platform.win32.Win32Exception;
++// import com.sun.jna.platform.win32.Tlhelp32.MODULEENTRY32W;
++// import com.sun.jna.ptr.IntByReference;
++// import com.sun.jna.ptr.PointerByReference;
++// Haya end - remove oshi
+ import java.nio.charset.StandardCharsets;
+ import java.util.Comparator;
+ import java.util.List;
+@@ -31,65 +33,67 @@ public class NativeModuleLister {
+     private static final int CODEPAGE_MASK = -65536;
+     private static final int DEFAULT_CODEPAGE = 78643200;
+ 
+-    public static List<NativeModuleLister.NativeModuleInfo> listModules() {
+-        if (!Platform.isWindows()) {
+-            return ImmutableList.of();
+-        }
+-
+-        int selfHandle = Kernel32.INSTANCE.GetCurrentProcessId();
+-        Builder<NativeModuleLister.NativeModuleInfo> result = ImmutableList.builder();
+-
+-        for (MODULEENTRY32W module : Kernel32Util.getModules(selfHandle)) {
+-            String name = module.szModule();
+-            Optional<NativeModuleLister.NativeModuleVersion> versionInfo = tryGetModuleVersion(module.szExePath());
+-            result.add(new NativeModuleLister.NativeModuleInfo(name, versionInfo));
+-        }
+-
+-        return result.build();
+-    }
+-
+-    public static Optional<NativeModuleLister.NativeModuleVersion> tryGetModuleVersion(final String path) {
+-        if (!Platform.isWindows()) {
+-            return Optional.empty();
+-        }
+-
+-        try {
+-            IntByReference dwDummy = new IntByReference();
+-            int versionLength = Version.INSTANCE.GetFileVersionInfoSize(path, dwDummy);
+-            if (versionLength == 0) {
+-                int lastError = Native.getLastError();
+-                if (lastError != 1813 && lastError != 1812) {
+-                    throw new Win32Exception(lastError);
+-                } else {
+-                    return Optional.empty();
+-                }
+-            } else {
+-                Pointer lpData = new Memory(versionLength);
+-                if (!Version.INSTANCE.GetFileVersionInfo(path, 0, versionLength, lpData)) {
+-                    throw new Win32Exception(Native.getLastError());
+-                }
+-
+-                IntByReference size = new IntByReference();
+-                Pointer translationsBuffer = queryVersionValue(lpData, "\\VarFileInfo\\Translation", size);
+-                int[] langsAndCodepages = translationsBuffer.getIntArray(0L, size.getValue() / 4);
+-                OptionalInt maybeLangAndCodepage = findLangAndCodepage(langsAndCodepages);
+-                if (maybeLangAndCodepage.isEmpty()) {
+-                    return Optional.empty();
+-                }
+-
+-                int langAndCodepage = maybeLangAndCodepage.getAsInt();
+-                int lang = langAndCodepage & 65535;
+-                int codepage = (langAndCodepage & -65536) >> 16;
+-                String description = queryVersionString(lpData, langTableKey("FileDescription", lang, codepage), size);
+-                String companyName = queryVersionString(lpData, langTableKey("CompanyName", lang, codepage), size);
+-                String fileVersion = queryVersionString(lpData, langTableKey("FileVersion", lang, codepage), size);
+-                return Optional.of(new NativeModuleLister.NativeModuleVersion(description, fileVersion, companyName));
+-            }
+-        } catch (Exception e) {
+-            LOGGER.info("Failed to find module info for {}", path, e);
+-            return Optional.empty();
+-        }
+-    }
++    // Haya start - remove oshi
++    // public static List<NativeModuleLister.NativeModuleInfo> listModules() {
++    //     if (!Platform.isWindows()) {
++    //         return ImmutableList.of();
++    //     }
++    //
++    //     int selfHandle = Kernel32.INSTANCE.GetCurrentProcessId();
++    //     Builder<NativeModuleLister.NativeModuleInfo> result = ImmutableList.builder();
++    //
++    //     for (MODULEENTRY32W module : Kernel32Util.getModules(selfHandle)) {
++    //         String name = module.szModule();
++    //         Optional<NativeModuleLister.NativeModuleVersion> versionInfo = tryGetModuleVersion(module.szExePath());
++    //         result.add(new NativeModuleLister.NativeModuleInfo(name, versionInfo));
++    //     }
++    //
++    //     return result.build();
++    // }
++    //
++    // public static Optional<NativeModuleLister.NativeModuleVersion> tryGetModuleVersion(final String path) {
++    //     if (!Platform.isWindows()) {
++    //         return Optional.empty();
++    //     }
++    //
++    //     try {
++    //         IntByReference dwDummy = new IntByReference();
++    //         int versionLength = Version.INSTANCE.GetFileVersionInfoSize(path, dwDummy);
++    //         if (versionLength == 0) {
++    //             int lastError = Native.getLastError();
++    //             if (lastError != 1813 && lastError != 1812) {
++    //                 throw new Win32Exception(lastError);
++    //             } else {
++    //                 return Optional.empty();
++    //             }
++    //         } else {
++    //             Pointer lpData = new Memory(versionLength);
++    //             if (!Version.INSTANCE.GetFileVersionInfo(path, 0, versionLength, lpData)) {
++    //                 throw new Win32Exception(Native.getLastError());
++    //             }
++    //
++    //             IntByReference size = new IntByReference();
++    //             Pointer translationsBuffer = queryVersionValue(lpData, "\\VarFileInfo\\Translation", size);
++    //             int[] langsAndCodepages = translationsBuffer.getIntArray(0L, size.getValue() / 4);
++    //             OptionalInt maybeLangAndCodepage = findLangAndCodepage(langsAndCodepages);
++    //             if (maybeLangAndCodepage.isEmpty()) {
++    //                 return Optional.empty();
++    //             }
++    //
++    //             int langAndCodepage = maybeLangAndCodepage.getAsInt();
++    //             int lang = langAndCodepage & 65535;
++    //             int codepage = (langAndCodepage & -65536) >> 16;
++    //             String description = queryVersionString(lpData, langTableKey("FileDescription", lang, codepage), size);
++    //             String companyName = queryVersionString(lpData, langTableKey("CompanyName", lang, codepage), size);
++    //             String fileVersion = queryVersionString(lpData, langTableKey("FileVersion", lang, codepage), size);
++    //             return Optional.of(new NativeModuleLister.NativeModuleVersion(description, fileVersion, companyName));
++    //         }
++    //     } catch (Exception e) {
++    //         LOGGER.info("Failed to find module info for {}", path, e);
++    //         return Optional.empty();
++    //     }
++    // }
++    // Haya end - remove oshi
+ 
+     private static String langTableKey(final String key, final int lang, final int codepage) {
+         return String.format(Locale.ROOT, "\\StringFileInfo\\%04x%04x\\%s", lang, codepage, key);
+@@ -109,38 +113,40 @@ public class NativeModuleLister {
+         return bestSoFar;
+     }
+ 
+-    private static Pointer queryVersionValue(final Pointer lpData, final String key, final IntByReference outSize) {
+-        PointerByReference lplpBuffer = new PointerByReference();
+-        if (!Version.INSTANCE.VerQueryValue(lpData, key, lplpBuffer, outSize)) {
+-            throw new UnsupportedOperationException("Can't get version value " + key);
+-        } else {
+-            return lplpBuffer.getValue();
+-        }
+-    }
+-
+-    private static String queryVersionString(final Pointer lpData, final String key, final IntByReference outSize) {
+-        try {
+-            Pointer ptr = queryVersionValue(lpData, key, outSize);
+-            byte[] result = ptr.getByteArray(0L, (outSize.getValue() - 1) * 2);
+-            return sanitize(new String(result, StandardCharsets.UTF_16LE));
+-        } catch (Exception e) {
+-            return "";
+-        }
+-    }
+-
+-    private static String sanitize(final String input) {
+-        return Util.CONTROL_CHARACTER_ESCAPER.escape(input);
+-    }
+-
+-    public static void addCrashSection(final CrashReportCategory category) {
+-        category.setDetail("Modules", () -> {
+-            return listModules().stream().sorted(Comparator.comparing(module -> {
+-                return module.name;
+-            })).map(e -> {
+-                return "\n\t\t" + e;
+-            }).collect(Collectors.joining());
+-        });
+-    }
++    // Haya start - remove oshi
++    // private static Pointer queryVersionValue(final Pointer lpData, final String key, final IntByReference outSize) {
++    //     PointerByReference lplpBuffer = new PointerByReference();
++    //     if (!Version.INSTANCE.VerQueryValue(lpData, key, lplpBuffer, outSize)) {
++    //         throw new UnsupportedOperationException("Can't get version value " + key);
++    //     } else {
++    //         return lplpBuffer.getValue();
++    //     }
++    // }
++    //
++    // private static String queryVersionString(final Pointer lpData, final String key, final IntByReference outSize) {
++    //     try {
++    //         Pointer ptr = queryVersionValue(lpData, key, outSize);
++    //         byte[] result = ptr.getByteArray(0L, (outSize.getValue() - 1) * 2);
++    //         return sanitize(new String(result, StandardCharsets.UTF_16LE));
++    //     } catch (Exception e) {
++    //         return "";
++    //     }
++    // }
++    //
++    // private static String sanitize(final String input) {
++    //     return Util.CONTROL_CHARACTER_ESCAPER.escape(input);
++    // }
++    //
++    // public static void addCrashSection(final CrashReportCategory category) {
++    //     category.setDetail("Modules", () -> {
++    //         return listModules().stream().sorted(Comparator.comparing(module -> {
++    //             return module.name;
++    //         })).map(e -> {
++    //             return "\n\t\t" + e;
++    //         }).collect(Collectors.joining());
++    //     });
++    // }
++    // Haya end - remove oshi
+ 
+     public record NativeModuleInfo(String name, Optional<NativeModuleLister.NativeModuleVersion> version) {
+         @Override
+diff --git a/net/minecraft/util/profiling/metrics/profiling/ServerMetricsSamplersProvider.java b/net/minecraft/util/profiling/metrics/profiling/ServerMetricsSamplersProvider.java
+index 3854aa0388d464cc3e3053cbfaf75737d1d1b23b22411f828206bfe6ad8e9d14..046f699a23d82ef896a66d96f86343ec8f99e424aea386c732cf3f6be0baa9c1 100644
+--- a/net/minecraft/util/profiling/metrics/profiling/ServerMetricsSamplersProvider.java
++++ b/net/minecraft/util/profiling/metrics/profiling/ServerMetricsSamplersProvider.java
+@@ -19,8 +19,8 @@ import net.minecraft.util.profiling.metrics.MetricSampler;
+ import net.minecraft.util.profiling.metrics.MetricsRegistry;
+ import net.minecraft.util.profiling.metrics.MetricsSamplerProvider;
+ import org.slf4j.Logger;
+-import oshi.SystemInfo;
+-import oshi.hardware.CentralProcessor;
++// import oshi.SystemInfo; // Haya - remove oshi
++// import oshi.hardware.CentralProcessor; // Haya - remove oshi
+ 
+ public class ServerMetricsSamplersProvider implements MetricsSamplerProvider {
+     private static final Logger LOGGER = LogUtils.getLogger();
+@@ -37,16 +37,18 @@ public class ServerMetricsSamplersProvider implements MetricsSamplerProvider {
+     public static Set<MetricSampler> runtimeIndependentSamplers() {
+         Builder<MetricSampler> result = ImmutableSet.builder();
+ 
+-        try {
+-            ServerMetricsSamplersProvider.CpuStats cpuStats = new ServerMetricsSamplersProvider.CpuStats();
+-            IntStream.range(0, cpuStats.nrOfCpus).mapToObj(i -> {
+-                return MetricSampler.create("cpu#" + i, MetricCategory.CPU, () -> {
+-                    return cpuStats.loadForCpu(i);
+-                });
+-            }).forEach(result::add);
+-        } catch (Throwable t) {
+-            LOGGER.warn("Failed to query cpu, no cpu stats will be recorded", t);
+-        }
++        // Haya start - remove oshi
++        // try {
++        //     ServerMetricsSamplersProvider.CpuStats cpuStats = new ServerMetricsSamplersProvider.CpuStats();
++        //     IntStream.range(0, cpuStats.nrOfCpus).mapToObj(i -> {
++        //         return MetricSampler.create("cpu#" + i, MetricCategory.CPU, () -> {
++        //             return cpuStats.loadForCpu(i);
++        //         });
++        //     }).forEach(result::add);
++        // } catch (Throwable t) {
++        //     LOGGER.warn("Failed to query cpu, no cpu stats will be recorded", t);
++        // }
++        // Haya end - remove oshi
+ 
+         result.add(MetricSampler.create("heap MiB", MetricCategory.JVM, () -> {
+             return SystemReport.sizeInMiB(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
+@@ -84,23 +86,25 @@ public class ServerMetricsSamplersProvider implements MetricsSamplerProvider {
+             .build();
+     }
+ 
+-    public static class CpuStats {
+-        private final SystemInfo systemInfo = new SystemInfo();
+-        private final CentralProcessor processor = this.systemInfo.getHardware().getProcessor();
+-        public final int nrOfCpus = this.processor.getLogicalProcessorCount();
+-        private long[][] previousCpuLoadTick = this.processor.getProcessorCpuLoadTicks();
+-        private double[] currentLoad = this.processor.getProcessorCpuLoadBetweenTicks(this.previousCpuLoadTick);
+-        private long lastPollMs;
+-
+-        public double loadForCpu(final int i) {
+-            long now = System.currentTimeMillis();
+-            if (this.lastPollMs == 0L || this.lastPollMs + 501L < now) {
+-                this.currentLoad = this.processor.getProcessorCpuLoadBetweenTicks(this.previousCpuLoadTick);
+-                this.previousCpuLoadTick = this.processor.getProcessorCpuLoadTicks();
+-                this.lastPollMs = now;
+-            }
+-
+-            return this.currentLoad[i] * 100.0;
+-        }
+-    }
++    // Haya start - remove oshi
++    // public static class CpuStats {
++    //     private final SystemInfo systemInfo = new SystemInfo();
++    //     private final CentralProcessor processor = this.systemInfo.getHardware().getProcessor();
++    //     public final int nrOfCpus = this.processor.getLogicalProcessorCount();
++    //     private long[][] previousCpuLoadTick = this.processor.getProcessorCpuLoadTicks();
++    //     private double[] currentLoad = this.processor.getProcessorCpuLoadBetweenTicks(this.previousCpuLoadTick);
++    //     private long lastPollMs;
++    //
++    //     public double loadForCpu(final int i) {
++    //         long now = System.currentTimeMillis();
++    //         if (this.lastPollMs == 0L || this.lastPollMs + 501L < now) {
++    //             this.currentLoad = this.processor.getProcessorCpuLoadBetweenTicks(this.previousCpuLoadTick);
++    //             this.previousCpuLoadTick = this.processor.getProcessorCpuLoadTicks();
++    //             this.lastPollMs = now;
++    //         }
++    //
++    //         return this.currentLoad[i] * 100.0;
++    //     }
++    // }
++    // Haya end - remove oshi
+ }

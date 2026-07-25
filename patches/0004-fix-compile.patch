@@ -1,0 +1,2868 @@
+From 0000000000000000000000000000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: hayanesuru <hayanesuru@outlook.jp>
+Date: Wed, 8 Jul 2026 18:44:33 +0900
+Subject: [PATCH] fix compile
+
+SPDX-License-Identifier: Unlicense
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+diff --git a/com/mojang/datafixers/FieldFinder.java b/com/mojang/datafixers/FieldFinder.java
+index 03284f42c8dc9c2c9f2ddaef80371c8fb93e1643c3bcf05e035c4eea69ddea51..ab82fd3b3065dea0c910dfa3fee93acc0a522b271ccfe48763205ead4ef4cf7d 100644
+--- a/com/mojang/datafixers/FieldFinder.java
++++ b/com/mojang/datafixers/FieldFinder.java
+@@ -64,15 +64,16 @@ public final class FieldFinder<FT> implements OpticFinder<FT> {
+             this.type = type;
+         }
+ 
++        @SuppressWarnings("unchecked")
+         @Override
+         public <S> Either<TypedOptic<S, ?, FT, FR>, Type.FieldNotFoundException> match(Type<S> targetType) {
+             if (this.name == null && this.type.equals(targetType, true, false)) {
+                 return Either.left(
+-                    new TypedOptic<>(
++                    (TypedOptic<S, FR, FT, FR>)new TypedOptic<>(
+                         Profunctor.Mu.TYPE_TOKEN,
+                         targetType,
+                         this.resultType,
+-                        (Type<FT>)targetType,
++                        targetType,
+                         this.resultType,
+                         Optics.id()
+                     )
+@@ -105,14 +106,16 @@ public final class FieldFinder<FT> implements OpticFinder<FT> {
+                                 DSL.field(tagType.name(), this.resultType),
+                                 this.type,
+                                 this.resultType,
+-                                Optics.id()
++                                (com.mojang.datafixers.optics.Adapter<S, FR, FT, FR>)Optics.id()
+                             )
+                         );
+                 }
+             } else if (!(
+-                targetType instanceof TaggedChoice.TaggedChoiceType<FT> choiceType
+-                    && Objects.equals(this.name, choiceType.getName())
+-            )) {
++                targetType instanceof TaggedChoice.TaggedChoiceType<?>)) {
++                return Either.right(new Type.Continue());
++            }
++            TaggedChoice.TaggedChoiceType<FT> choiceType = (TaggedChoice.TaggedChoiceType<FT>)targetType;
++            if (!Objects.equals(this.name, choiceType.getName())) {
+                 return Either.right(new Type.Continue());
+             } else if (!Objects.equals(this.type, choiceType.getKeyType())) {
+                 return Either.right(
+@@ -128,7 +131,7 @@ public final class FieldFinder<FT> implements OpticFinder<FT> {
+             } else {
+                 return !Objects.equals(this.type, this.resultType)
+                     ? Either.right(new Type.FieldNotFoundException("TaggedChoiceType key type change is unsupported."))
+-                    : Either.left(this.capChoice(choiceType));
++                    : Either.left((TypedOptic<S, ?, FT, FR>)this.capChoice(choiceType));
+             }
+         }
+ 
+@@ -136,7 +139,7 @@ public final class FieldFinder<FT> implements OpticFinder<FT> {
+             return new TypedOptic<>(
+                 Cartesian.Mu.TYPE_TOKEN,
+                 (Type<Pair<FT, V>>)choiceType,
+-                choiceType,
++                (Type<Pair<FT, V>>)choiceType,
+                 this.type,
+                 this.type,
+                 Optics.proj1()
+diff --git a/com/mojang/datafixers/NamedChoiceFinder.java b/com/mojang/datafixers/NamedChoiceFinder.java
+index cb0feb8b37523ccf1d2900494b2c8482fb8f321334d806ccd5700c3fd4a4379f..dd89c78cd13a6cfe6f249cf976e7d0761aeb09562228433047fadcb559288a40 100644
+--- a/com/mojang/datafixers/NamedChoiceFinder.java
++++ b/com/mojang/datafixers/NamedChoiceFinder.java
+@@ -6,6 +6,8 @@ import com.mojang.datafixers.types.templates.TaggedChoice;
+ import com.mojang.datafixers.util.Either;
+ import java.util.Objects;
+ 
++import static com.mojang.datafixers.TypedOptic.tagged;
++
+ final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
+     private final String name;
+     private final Type<FT> type;
+@@ -59,7 +61,8 @@ final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
+ 
+         @Override
+         public <S> Either<TypedOptic<S, ?, FT, FR>, Type.FieldNotFoundException> match(Type<S> targetType) {
+-            if (targetType instanceof TaggedChoice.TaggedChoiceType<?> choiceType) {
++            if (targetType instanceof TaggedChoice.TaggedChoiceType<?>) {
++                TaggedChoice.TaggedChoiceType<?> choiceType = (TaggedChoice.TaggedChoiceType<?>)targetType;
+                 Type<?> elementType = choiceType.types().get(this.name);
+                 if (elementType != null) {
+                     return !Objects.equals(this.type, elementType)
+@@ -73,12 +76,12 @@ final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
+                                 )
+                             )
+                         )
+-                        : Either.left(TypedOptic.tagged(choiceType, this.name, this.type, this.resultType));
++                        : Either.left((TypedOptic<S, ?, FT, FR>)tagged((TaggedChoice.TaggedChoiceType<String>)choiceType, this.name, this.type, this.resultType));
+                 } else {
+                     return Either.right(new Type.Continue());
+                 }
+             } else {
+-                return targetType instanceof Tag.TagType
++                return targetType instanceof Tag.TagType<?>
+                     ? Either.right(new Type.FieldNotFoundException("in tag"))
+                     : Either.right(new Type.Continue());
+             }
+diff --git a/com/mojang/datafixers/Typed.java b/com/mojang/datafixers/Typed.java
+index cbf738cf730b9852170025698782fb6499c7cdab2f3e98b5e3bfb852ab1c47e9..22e4672854aec895b9734206e77ec8d9da6395394897277b742c59a332349407 100644
+--- a/com/mojang/datafixers/Typed.java
++++ b/com/mojang/datafixers/Typed.java
+@@ -75,7 +75,7 @@ public final class Typed<A> {
+                 optic1.apply(
+                     new TypeToken<ForgetOpt.Instance.Mu<FT>>() {},
+                     new ForgetOpt.Instance<>(),
+-                    (App2<ForgetOpt.Mu<FT>, FT, FT>)Optics.forgetOpt(Optional::of)
++                    Optics.forgetOpt(Optional::of)
+                 )
+             )
+             .run(this.value);
+@@ -96,7 +96,7 @@ public final class Typed<A> {
+                     .apply(
+                         new TypeToken<ForgetOpt.Instance.Mu<FT>>() {},
+                         new ForgetOpt.Instance<>(),
+-                        (App2<ForgetOpt.Mu<FT>, FT, FT>)Optics.forgetOpt(Optional::of)
++                        Optics.forgetOpt(Optional::of)
+                     )
+             )
+             .run(this.value)
+@@ -109,7 +109,7 @@ public final class Typed<A> {
+                 o.apply(
+                     new TypeToken<ForgetOpt.Instance.Mu<FT>>() {},
+                     new ForgetOpt.Instance<>(),
+-                    (App2<ForgetOpt.Mu<Object>, FT, FT>)Optics.forgetOpt(Optional::of)
++                    Optics.forgetOpt(Optional::of)
+                 )
+             )
+             .run(this.value)
+@@ -140,12 +140,12 @@ public final class Typed<A> {
+     }
+ 
+     private <B, FT, FR> Typed<B> setCap(TypedOptic<A, B, FT, FR> field, Typed<FR> newValue) {
+-        B b = (B)ReForgetC.unbox(
++        B b = ReForgetC.unbox(
+                 field.apply(
+                     new TypeToken<ReForgetC.Instance.Mu<FR>>() {},
+                     new ReForgetC.Instance<>(),
+-                    (App2<ReForgetC.Mu<FR>, FT, FR>)Optics.reForgetC(
+-                        "set", Either.left((Function<FR, B>)Function.identity())
++                    Optics.reForgetC(
++                        "set", Either.left(Function.identity())
+                     )
+                 )
+             )
+@@ -237,11 +237,11 @@ public final class Typed<A> {
+     }
+ 
+     public <B> Typed<Either<A, B>> inj1(Type<B> type) {
+-        return new Typed<>(DSL.or(this.type, type), this.ops, Optics.inj1().build(this.value));
++        return new Typed<>(DSL.or(this.type, type), this.ops, Optics.<A, B, A>inj1().build(this.value));
+     }
+ 
+     public <B> Typed<Either<B, A>> inj2(Type<B> type) {
+-        return new Typed<>(DSL.or(type, this.type), this.ops, Optics.inj2().build(this.value));
++        return new Typed<>(DSL.or(type, this.type), this.ops, Optics.<B, A, A>inj2().build(this.value));
+     }
+ 
+     public static <A, B> Typed<Pair<A, B>> pair(Typed<A> first, Typed<B> second) {
+diff --git a/com/mojang/datafixers/TypedOptic.java b/com/mojang/datafixers/TypedOptic.java
+index 424ed9ca6c4c1e1c3e8dfd7631c2e83b95f3515e17f3c40420728f3b700ccbbe..f577c143d50c1030c22f4402b6fc7e8a6d756bf7e1233ce9619ca323cd70d1d3 100644
+--- a/com/mojang/datafixers/TypedOptic.java
++++ b/com/mojang/datafixers/TypedOptic.java
+@@ -106,6 +106,7 @@ public record TypedOptic<S, T, A, B>(
+         return (TypedOptic<S, T, A1, B1>)(new TypedOptic<>(proof.build(), elements.build()));
+     }
+ 
++    @SuppressWarnings("unchecked")
+     public <Proof2 extends K1> Optional<Optic<? super Proof2, S, T, A, B>> upCast(TypeToken<Proof2> proof) {
+         if (instanceOf(this.bounds, proof)) {
+             if (this.elements.size() == 1) {
+@@ -113,7 +114,7 @@ public record TypedOptic<S, T, A, B>(
+             }
+ 
+             List<Optic<? super Proof2, ?, ?, ?, ?>> optics = this.elements.stream().map(e -> {
+-                return e.optic();
++                return (Optic<? super Proof2, ?, ?, ?, ?>)e.optic();
+             }).collect(Collectors.toList());
+             return Optional.of(new Optic.CompositionOptic<>(optics));
+         } else {
+diff --git a/com/mojang/datafixers/View.java b/com/mojang/datafixers/View.java
+index 79a583b8c5c55648aff6aeb62b7ef997784bf40bd6d5ef8e67d43a88fbe28786..d8834d8cdfcdc2f842927ebc9921c5942a04ee2a06be2e3864a36a58cb9310f4 100644
+--- a/com/mojang/datafixers/View.java
++++ b/com/mojang/datafixers/View.java
+@@ -60,13 +60,14 @@ public record View<A, B>(PointFree<Function<A, B>> function) implements App2<Vie
+         return new View<>(Functions.fun(name, function, type, newType));
+     }
+ 
++    @SuppressWarnings("unchecked")
+     public <C> View<C, B> compose(View<C, A> that) {
+         if (this.isNop()) {
+-            return new View<>((PointFree<Function<C, B>>)that.function());
++            return new View<>(((View<C, B>)that).function());
+         } else {
+-            return (View<C, B>)(that.isNop()
+-                ? new View<>(this.function())
+-                : new View<>(Functions.comp(this.function(), that.function())));
++            return that.isNop()
++                ? new View<>(((View<C, B>)this).function())
++                : new View<>(Functions.comp(this.function(), that.function()));
+         }
+     }
+ 
+diff --git a/com/mojang/datafixers/functions/Comp.java b/com/mojang/datafixers/functions/Comp.java
+index 8791d1ff71319842756f8cec2b4978486537d5eecf2d2c2bedcf3c50f504b162..7be9eed9d675204ea2f18cc073f75d67d5b56fd961d93e691bf2240fabed0091 100644
+--- a/com/mojang/datafixers/functions/Comp.java
++++ b/com/mojang/datafixers/functions/Comp.java
+@@ -60,7 +60,7 @@ final class Comp<A, B> extends PointFree<Function<A, B>> {
+             }
+         }
+ 
+-        return Optional.of(rewritten ? new Comp<>(newFunctions.toArray(PointFree[]::new), this.type) : this);
++        return Optional.of(rewritten ? (PointFree<Function<A, B>>)new Comp<>(newFunctions.toArray(PointFree[]::new), this.type) : this);
+     }
+ 
+     @Override
+diff --git a/com/mojang/datafixers/functions/Fold.java b/com/mojang/datafixers/functions/Fold.java
+index b38375adce415006785044fcafb7ba6bd41b9d555aa616fff4b7daf8aebadc6b..d296e2b8ffbdb966f867a194ccea339ac86a1b806a4b0277912aaf94181202c8 100644
+--- a/com/mojang/datafixers/functions/Fold.java
++++ b/com/mojang/datafixers/functions/Fold.java
+@@ -73,7 +73,7 @@ final class Fold<A, B> extends PointFree<Function<A, B>> {
+ 
+     private <FB> PointFree<Function<A, B>> cap(RewriteResult<?, FB> resResult) {
+         RewriteResult<A, B> op = (RewriteResult<A, B>)this.algebra.apply(this.index);
+-        return Functions.comp(op.view().function(), (PointFree<Function<A, A>>)resResult.view().function());
++        return Functions.comp(((View<FB, B>)op.view()).function(), ((View<A, FB>)resResult.view()).function());
+     }
+ 
+     @Override
+diff --git a/com/mojang/datafixers/functions/Functions.java b/com/mojang/datafixers/functions/Functions.java
+index 5252cd2131fc8cb04886ea3154e747907e362d9bff73f980f56e5d7d92e2ad78..11bb9e2d6991c9b233026e10037013fc746bfeace8e1cf0a3c2519b9ae8f38cf 100644
+--- a/com/mojang/datafixers/functions/Functions.java
++++ b/com/mojang/datafixers/functions/Functions.java
+@@ -11,9 +11,9 @@ import java.util.function.Function;
+ public abstract class Functions {
+     public static <A, B, C> PointFree<Function<A, C>> comp(PointFree<Function<B, C>> f1, PointFree<Function<A, B>> f2) {
+         if (isId(f1)) {
+-            return (PointFree<Function<A, C>>)f2;
++            return (PointFree<Function<A, C>>)(PointFree<?>)f2;
+         } else if (isId(f2)) {
+-            return (PointFree<Function<A, C>>)f1;
++            return (PointFree<Function<A, C>>)(PointFree<?>)f1;
+         } else if (f1 instanceof Comp<B, C> comp1 && f2 instanceof Comp<A, B> comp2) {
+             PointFree<? extends Function<?, ?>>[] functions = new PointFree[comp1.functions.length
+                 + comp2.functions.length];
+diff --git a/com/mojang/datafixers/functions/PointFreeRule.java b/com/mojang/datafixers/functions/PointFreeRule.java
+index d4c8ff1a279dac7e992bbcfe6639c2ed306b016d200b31dc9ef513c03482d2cf..6cdc330e1714ecd5dfb7b6253264a09b0fd21a273f3195598ca4e6f7d1ed725a 100644
+--- a/com/mojang/datafixers/functions/PointFreeRule.java
++++ b/com/mojang/datafixers/functions/PointFreeRule.java
+@@ -92,15 +92,17 @@ public interface PointFreeRule {
+                 : Optional.empty();
+         }
+ 
++        @SuppressWarnings("unchecked") // Haya - fix compile
+         private <A, B, C> PointFree<Function<A, C>> compose(
+             PointFree<? extends Function<?, ?>> first, PointFree<? extends Function<?, ?>> second
+         ) {
+             return first instanceof ProfunctorTransformer<?, ?, ?, ?> firstOptic
+                     && second instanceof ProfunctorTransformer<?, ?, ?, ?> secondOptic
+                 ? this.cap(firstOptic, secondOptic)
+-                : Functions.comp((PointFree<Function<?, C>>)first, (PointFree<Function<A, ?>>)second);
++                : Functions.comp((PointFree<Function<B, C>>)first, (PointFree<Function<A, B>>)second); // Haya - fix compile
+         }
+ 
++        @SuppressWarnings("unchecked")
+         private <R, X, Y, S, T, A, B> R cap(
+             ProfunctorTransformer<X, Y, ?, ?> first, ProfunctorTransformer<S, T, A, B> second
+         ) {
+@@ -340,8 +342,8 @@ public interface PointFreeRule {
+         public <A> Optional<? extends PointFree<A>> rewrite(PointFree<A> expr) {
+             if (expr instanceof Apply<?, A> apply) {
+                 PointFree<? extends Function<?, A>> func = apply.func;
+-                if (func instanceof ProfunctorTransformer && Functions.isId(apply.arg)) {
+-                    return Optional.of(Functions.id(((Func)apply.type()).first()));
++                if (func instanceof ProfunctorTransformer<?, ?, ?, ?> && Functions.isId(apply.arg)) {
++                    return Optional.of((PointFree<A>)Functions.id(((Func<?, ?>)apply.type()).first()));
+                 }
+             }
+ 
+@@ -514,9 +516,8 @@ public interface PointFreeRule {
+         }
+ 
+         private <R, A, A2, B, B2> R cap(Apply<?, ?> first, Apply<?, ?> second) {
+-            ProfunctorTransformer<Either<A, B2>, Either<A2, B2>, A, A2> firstFunc = (ProfunctorTransformer<Either<A, B2>, Either<A2, B2>, A, A2>)first.func;
+-            ProfunctorTransformer<Either<A, B>, Either<A, B2>, B, B2> secondFunc = (ProfunctorTransformer<Either<A, B>, Either<A, B2>, B, B2>)second.func;
+-            PointFree<Function<A, A2>> firstArg = (PointFree<Function<A, A2>>)first.arg;
++            ProfunctorTransformer<Either<A, B2>, Either<A2, B2>, A, A2> firstFunc = (ProfunctorTransformer<Either<A, B2>, Either<A2, B2>, A, A2>)(Object)first.func;
++            ProfunctorTransformer<Either<A, B>, Either<A, B2>, B, B2> secondFunc = (ProfunctorTransformer<Either<A, B>, Either<A, B2>, B, B2>)(Object)second.func; PointFree<Function<A, A2>> firstArg = (PointFree<Function<A, A2>>)first.arg;
+             PointFree<Function<B, B2>> secondArg = (PointFree<Function<B, B2>>)second.arg;
+             Func<Either<A, B2>, Either<A2, B2>> firstType = (Func<Either<A, B2>, Either<A2, B2>>)first.type;
+             Func<Either<A, B>, Either<A, B2>> secondType = (Func<Either<A, B>, Either<A, B2>>)second.type;
+@@ -557,11 +558,10 @@ public interface PointFreeRule {
+         }
+ 
+         private <R, A, A2, B, B2> R cap(Apply<?, ?> first, Apply<?, ?> second) {
+-            ProfunctorTransformer<Pair<A, B2>, Pair<A2, B2>, A, A2> firstFunc = (ProfunctorTransformer<Pair<A, B2>, Pair<A2, B2>, A, A2>)first.func;
+-            ProfunctorTransformer<Pair<A, B>, Pair<A, B2>, B, B2> secondFunc = (ProfunctorTransformer<Pair<A, B>, Pair<A, B2>, B, B2>)second.func;
++            ProfunctorTransformer<Pair<A, B2>, Pair<A2, B2>, A, A2> firstFunc = (ProfunctorTransformer<Pair<A, B2>, Pair<A2, B2>, A, A2>)(Object)first.func;
++            ProfunctorTransformer<Pair<A, B>, Pair<A, B2>, B, B2> secondFunc = (ProfunctorTransformer<Pair<A, B>, Pair<A, B2>, B, B2>)(Object)second.func;
+             PointFree<Function<A, A2>> firstArg = (PointFree<Function<A, A2>>)first.arg;
+-            PointFree<Function<B, B2>> secondArg = (PointFree<Function<B, B2>>)second.arg;
+-            Func<Pair<A, B2>, Pair<A2, B2>> firstType = (Func<Pair<A, B2>, Pair<A2, B2>>)first.type;
++            PointFree<Function<B, B2>> secondArg = (PointFree<Function<B, B2>>)second.arg; Func<Pair<A, B2>, Pair<A2, B2>> firstType = (Func<Pair<A, B2>, Pair<A2, B2>>)first.type;
+             Func<Pair<A, B>, Pair<A, B2>> secondType = (Func<Pair<A, B>, Pair<A, B2>>)second.type;
+             Product.ProductType<A, B> input = (Product.ProductType<A, B>)secondType.first();
+             Product.ProductType<A2, B2> output = (Product.ProductType<A2, B2>)firstType.second();
+diff --git a/com/mojang/datafixers/kinds/CartesianLike.java b/com/mojang/datafixers/kinds/CartesianLike.java
+index 3d85f3dd810aabdfac1eda159c69545cebfc09b0d315cc696fbc9c2ca4eb9768..dfd281096b2786190ccd4f4d2d59c3fe281ebc685c7fa6461ff30800e07a1628 100644
+--- a/com/mojang/datafixers/kinds/CartesianLike.java
++++ b/com/mojang/datafixers/kinds/CartesianLike.java
+@@ -17,7 +17,7 @@ public interface CartesianLike<T extends K1, C, Mu extends CartesianLike.Mu> ext
+         Applicative<F, ?> applicative, Function<A, App<F, B>> function, App<T, A> input
+     ) {
+         return applicative.map(
+-            this::from, new Pair.Instance<C>().traverse(applicative, (Function<A, App<F, A>>)function, this.to(input))
++            this::from, new Pair.Instance<C>().traverse(applicative, function, this.to(input))
+         );
+     }
+ 
+diff --git a/com/mojang/datafixers/kinds/CocartesianLike.java b/com/mojang/datafixers/kinds/CocartesianLike.java
+index 9ed07ac131ebf1fc8f7bbecc4fca83a05d8d20a3d6d488545a66f5fa182ee0b0..1e2e7dda45e285ba98000922bba1b9e719cfdadca5fb1a71489e440ab28baeae 100644
+--- a/com/mojang/datafixers/kinds/CocartesianLike.java
++++ b/com/mojang/datafixers/kinds/CocartesianLike.java
+@@ -20,7 +20,7 @@ public interface CocartesianLike<T extends K1, C, Mu extends CocartesianLike.Mu>
+     ) {
+         return applicative.map(
+             this::from,
+-            new Either.Instance<C>().traverse(applicative, (Function<A, App<F, A>>)function, this.to(input))
++            new Either.Instance<C>().traverse(applicative, function, this.to(input))
+         );
+     }
+ 
+diff --git a/com/mojang/datafixers/kinds/Const.java b/com/mojang/datafixers/kinds/Const.java
+index 3509bbf88dafb1c8666b4d7de16eac7bcc39a2dfc7d973096debce89b5dd9256..c63d6a83f43e624032c51e932a2ae329660aed4480063d287c33754802534f50 100644
+--- a/com/mojang/datafixers/kinds/Const.java
++++ b/com/mojang/datafixers/kinds/Const.java
+@@ -7,7 +7,7 @@ public final class Const<C, T> implements App<Const.Mu<C>, T> {
+     private final C value;
+ 
+     public static <C, T> C unbox(App<Const.Mu<C>, T> box) {
+-        return ((Const)box).value;
++        return ((Const<C, T>)box).value;
+     }
+ 
+     public static <C, T> Const<C, T> create(C value) {
+@@ -27,12 +27,12 @@ public final class Const<C, T> implements App<Const.Mu<C>, T> {
+ 
+         @Override
+         public <T, R> App<Const.Mu<C>, R> map(Function<? super T, ? extends R> func, App<Const.Mu<C>, T> ts) {
+-            return (App<Const.Mu<C>, R>)Const.create(Const.unbox(ts));
++            return Const.create(Const.unbox(ts));
+         }
+ 
+         @Override
+         public <A> App<Const.Mu<C>, A> point(A a) {
+-            return (App<Const.Mu<C>, A>)Const.create(this.monoid.point());
++            return Const.create(this.monoid.point());
+         }
+ 
+         @Override
+@@ -40,7 +40,7 @@ public final class Const<C, T> implements App<Const.Mu<C>, T> {
+             App<Const.Mu<C>, Function<A, R>> function
+         ) {
+             return a -> {
+-                return (App<Const.Mu<C>, R>)Const.create(this.monoid.add(Const.unbox(function), Const.unbox(a)));
++                return Const.create(this.monoid.add(Const.unbox(function), Const.unbox(a)));
+             };
+         }
+ 
+@@ -49,7 +49,7 @@ public final class Const<C, T> implements App<Const.Mu<C>, T> {
+             App<Const.Mu<C>, BiFunction<A, B, R>> function
+         ) {
+             return (a, b) -> {
+-                return (App<Const.Mu<C>, R>)Const.create(
++                return Const.create(
+                     this.monoid.add(Const.unbox(function), this.monoid.add(Const.unbox(a), Const.unbox(b)))
+                 );
+             };
+diff --git a/com/mojang/datafixers/kinds/IdF.java b/com/mojang/datafixers/kinds/IdF.java
+index d216287f9f9833e3e725e392c441bcb68db4142799a0859a1a0c60969c03612f..eb81baff203364f30ef1b7742934dec3462aab72e7139975979419b7a58d873e 100644
+--- a/com/mojang/datafixers/kinds/IdF.java
++++ b/com/mojang/datafixers/kinds/IdF.java
+@@ -15,7 +15,7 @@ public final class IdF<A> implements App<IdF.Mu, A> {
+     }
+ 
+     public static <A> A get(App<IdF.Mu, A> box) {
+-        return ((IdF)box).value;
++        return ((IdF<A>)box).value;
+     }
+ 
+     public static <A> IdF<A> create(A a) {
+diff --git a/com/mojang/datafixers/kinds/ListBox.java b/com/mojang/datafixers/kinds/ListBox.java
+index 8547192921003438569a2873d046b88e16430c4a68e5c6f864b7af2f1f719aa2..e5655dcf6fa9c4547ce3a71a56bc7e4938fd03ee1d5567c1c54442e9a8726d51 100644
+--- a/com/mojang/datafixers/kinds/ListBox.java
++++ b/com/mojang/datafixers/kinds/ListBox.java
+@@ -26,13 +26,13 @@ public final class ListBox<T> implements App<ListBox.Mu, T> {
+     ) {
+         return applicative.map(
+             ListBox::unbox,
+-            ListBox.Instance.INSTANCE.traverse(applicative, (Function<A, App<F, T>>)function, create(input))
++            ListBox.Instance.INSTANCE.traverse(applicative, function, create(input))
+         );
+     }
+ 
+     public static <F extends K1, A> App<F, List<A>> flip(Applicative<F, ?> applicative, List<App<F, A>> input) {
+         return applicative.map(
+-            ListBox::unbox, ListBox.Instance.INSTANCE.flip(applicative, create((List<App<F, T>>)input))
++            ListBox::unbox, ListBox.Instance.INSTANCE.flip(applicative, create(input))
+         );
+     }
+ 
+diff --git a/com/mojang/datafixers/kinds/OptionalBox.java b/com/mojang/datafixers/kinds/OptionalBox.java
+index 5a74d01f9b9fd7a3f5ca0d7177f7895360308ebc89573131e7a13f41b9e91deb..4f0a01deb5c1204d61edfb1ded811eabb3ccdc882375981ac0b02dfaeb97e85c 100644
+--- a/com/mojang/datafixers/kinds/OptionalBox.java
++++ b/com/mojang/datafixers/kinds/OptionalBox.java
+@@ -51,9 +51,9 @@ public final class OptionalBox<T> implements App<OptionalBox.Mu, T> {
+         ) {
+             return (a, b) -> {
+                 return OptionalBox.create(OptionalBox.unbox(function).flatMap(f -> {
+-                    return OptionalBox.<Object>unbox(a).flatMap(av -> {
+-                        return OptionalBox.<Object>unbox(b).map(bv -> {
+-                            return (T)f.apply(av, bv);
++                    return OptionalBox.unbox(a).flatMap(av -> {
++                        return OptionalBox.unbox(b).map(bv -> {
++                            return f.apply(av, bv);
+                         });
+                     });
+                 }));
+diff --git a/com/mojang/datafixers/optics/Adapter.java b/com/mojang/datafixers/optics/Adapter.java
+index 1dd37ba83a21eb2afe0f6efc59be576c167a87a46865fe028447b2a8ca90b227..42a4d87e3d13fd541ff467560855cb0d4b0bff8b7fdb56f8f686996a8ca7b89e 100644
+--- a/com/mojang/datafixers/optics/Adapter.java
++++ b/com/mojang/datafixers/optics/Adapter.java
+@@ -30,9 +30,9 @@ public interface Adapter<S, T, A, B> extends App2<Adapter.Mu<A, B>, S, T>, Optic
+         ) {
+             return a -> {
+                 return Optics.adapter(c -> {
+-                    return Adapter.<S, T, A, B>unbox(a).from((S)g.apply((C)c));
++                    return Adapter.unbox(a).from(g.apply(c));
+                 }, b2 -> {
+-                    return (T)h.apply(Adapter.<S, B, A, B>unbox(a).to((B)b2));
++                    return h.apply(Adapter.unbox(a).to(b2));
+                 });
+             };
+         }
+diff --git a/com/mojang/datafixers/optics/Affine.java b/com/mojang/datafixers/optics/Affine.java
+index efc231b71e5b66ef2d452e5fa04df346bba170a42edeaae194108369de536ebd..0c4ee4314dc03096d1b7d133eadad1ad065f6e46bf36513f799f0ddfeaee922e 100644
+--- a/com/mojang/datafixers/optics/Affine.java
++++ b/com/mojang/datafixers/optics/Affine.java
+@@ -24,9 +24,9 @@ public interface Affine<S, T, A, B> extends App2<Affine.Mu<A, B>, S, T>, Optic<A
+         Cartesian<P, ? extends AffineP.Mu> cartesian = Cartesian.unbox(proof);
+         Cocartesian<P, ? extends AffineP.Mu> cocartesian = Cocartesian.unbox(proof);
+         return input -> {
+-            return cartesian.dimap(cocartesian.left(cartesian.rmap(cartesian.first(input), p -> {
+-                return (B)this.set((B)p.getFirst(), (S)p.getSecond());
+-            })), s -> {
++            return cartesian.dimap(cocartesian.left(cartesian.rmap(cartesian.<A, B, S>first(input), p -> {
++                return this.set(p.getFirst(), p.getSecond());
++            })), (S s) -> {
+                 return this.preview(s).map(Either::right, a -> {
+                     return Either.left(Pair.of(a, s));
+                 });
+@@ -41,9 +41,9 @@ public interface Affine<S, T, A, B> extends App2<Affine.Mu<A, B>, S, T>, Optic<A
+         ) {
+             return affineBox -> {
+                 return Optics.affine(c -> {
+-                    return Affine.<S, T, A, B>unbox(affineBox).preview((S)g.apply((C)c)).mapLeft(h);
++                    return Affine.unbox(affineBox).preview(g.apply(c)).mapLeft(h);
+                 }, (b2, c) -> {
+-                    return (T)h.apply(Affine.<S, B, A, B>unbox(affineBox).set((B)b2, (S)g.apply((C)c)));
++                    return h.apply(Affine.unbox(affineBox).set(b2, g.apply(c)));
+                 });
+             };
+         }
+@@ -77,13 +77,13 @@ public interface Affine<S, T, A, B> extends App2<Affine.Mu<A, B>, S, T>, Optic<A
+             Affine<A, B, A2, B2> affine = Affine.unbox(input);
+             return Optics.affine(either -> {
+                 return either.map(a -> {
+-                    return (Either<Either<B, C>, A>)affine.preview((A)a).mapLeft(Either::left);
++                    return affine.preview(a).mapLeft(Either::left);
+                 }, c -> {
+-                    return Either.left(Either.right((C)c));
++                    return Either.left(Either.right(c));
+                 });
+             }, (b, either) -> {
+                 return either.map(l -> {
+-                    return Either.left(affine.set((B2)b, (A)l));
++                    return Either.left(affine.set(b, l));
+                 }, Either::right);
+             });
+         }
+@@ -93,13 +93,13 @@ public interface Affine<S, T, A, B> extends App2<Affine.Mu<A, B>, S, T>, Optic<A
+             Affine<A, B, A2, B2> affine = Affine.unbox(input);
+             return Optics.affine(either -> {
+                 return either.map(c -> {
+-                    return Either.left(Either.left((C)c));
++                    return Either.left(Either.left(c));
+                 }, a -> {
+-                    return (Either<Either<C, B>, A>)affine.preview((A)a).mapLeft(Either::right);
++                    return affine.preview(a).mapLeft(Either::right);
+                 });
+             }, (b, either) -> {
+                 return either.map(Either::left, r -> {
+-                    return Either.right(affine.set((B2)b, (A)r));
++                    return Either.right(affine.set(b, r));
+                 });
+             });
+         }
+diff --git a/com/mojang/datafixers/optics/Grate.java b/com/mojang/datafixers/optics/Grate.java
+index 1233b27adf4029f78085367d5c60102e5c6f57e038a784cc41f6d5f6aae379c4..47fe984f8b5eb14b75f52cfbeba6220a96aa3e1037b235fa207b9aca6f29f975 100644
+--- a/com/mojang/datafixers/optics/Grate.java
++++ b/com/mojang/datafixers/optics/Grate.java
+@@ -32,8 +32,8 @@ interface Grate<S, T, A, B> extends App2<Grate.Mu<A, B>, S, T>, Optic<Closed.Mu,
+         ) {
+             return input -> {
+                 return Optics.grate(f -> {
+-                    return (T)h.apply(Grate.<S, B, A, B>unbox(input).grate(fa -> {
+-                        return (B)f.apply(FunctionType.create(fa.compose(g)));
++                    return h.apply(Grate.unbox(input).grate(fa -> {
++                        return f.apply(FunctionType.create(fa.compose(g)));
+                     }));
+                 });
+             };
+diff --git a/com/mojang/datafixers/optics/Lens.java b/com/mojang/datafixers/optics/Lens.java
+index ee7165be18cf97fe09d3cc1fe27e55247097f4ef6219cefe227fce5639322973..39b48590ac8288d7c3574f45fbba4ec80c9979e883d632b38e939d182b485743 100644
+--- a/com/mojang/datafixers/optics/Lens.java
++++ b/com/mojang/datafixers/optics/Lens.java
+@@ -51,9 +51,9 @@ public interface Lens<S, T, A, B> extends App2<Lens.Mu<A, B>, S, T>, Optic<Carte
+         ) {
+             return l -> {
+                 return Optics.lens(c -> {
+-                    return Lens.<S, T, A, B>unbox(l).view((S)g.apply((C)c));
++                    return Lens.unbox(l).view(g.apply(c));
+                 }, (b2, c) -> {
+-                    return (T)h.apply(Lens.<S, B, A, B>unbox(l).update((B)b2, (S)g.apply((C)c)));
++                    return h.apply(Lens.unbox(l).update(b2, g.apply(c)));
+                 });
+             };
+         }
+@@ -61,18 +61,18 @@ public interface Lens<S, T, A, B> extends App2<Lens.Mu<A, B>, S, T>, Optic<Carte
+         @Override
+         public <A, B, C> App2<Lens.Mu<A2, B2>, Pair<A, C>, Pair<B, C>> first(App2<Lens.Mu<A2, B2>, A, B> input) {
+             return Optics.lens(pair -> {
+-                return (A)Lens.unbox(input).view(pair.getFirst());
++                return Lens.unbox(input).view(pair.getFirst());
+             }, (b2, pair) -> {
+-                return Pair.of(Lens.unbox(input).update((B2)b2, pair.getFirst()), pair.getSecond());
++                return Pair.of(Lens.unbox(input).update(b2, pair.getFirst()), pair.getSecond());
+             });
+         }
+ 
+         @Override
+         public <A, B, C> App2<Lens.Mu<A2, B2>, Pair<C, A>, Pair<C, B>> second(App2<Lens.Mu<A2, B2>, A, B> input) {
+             return Optics.lens(pair -> {
+-                return (A)Lens.unbox(input).view(pair.getSecond());
++                return Lens.unbox(input).view(pair.getSecond());
+             }, (b2, pair) -> {
+-                return Pair.of(pair.getFirst(), Lens.unbox(input).update((B2)b2, pair.getSecond()));
++                return Pair.of(pair.getFirst(), Lens.unbox(input).update(b2, pair.getSecond()));
+             });
+         }
+     }
+diff --git a/com/mojang/datafixers/optics/Optic.java b/com/mojang/datafixers/optics/Optic.java
+index 3e0fae9a8570ab514db33181d32872be5b8c64feacb4dde5ffccd647a6ebb636..2b2d57722dbd3b62189645ab843b4aefc8de3b8195ab7429e302c831375f6a68 100644
+--- a/com/mojang/datafixers/optics/Optic.java
++++ b/com/mojang/datafixers/optics/Optic.java
+@@ -15,12 +15,13 @@ import java.util.stream.Collectors;
+ public interface Optic<Proof extends K1, S, T, A, B> {
+     <P extends K2> Function<App2<P, A, B>, App2<P, S, T>> eval(App<? extends Proof, P> var1);
+ 
++    @SuppressWarnings("unchecked")
+     default <Proof2 extends K1> Optional<Optic<? super Proof2, S, T, A, B>> upCast(
+         Set<TypeToken<? extends K1>> proofBounds, TypeToken<Proof2> proof
+     ) {
+         return proofBounds.stream().allMatch(bound -> {
+             return bound.isSupertypeOf(proof);
+-        }) ? Optional.of(this) : Optional.empty();
++        }) ? Optional.of((Optic<? super Proof2, S, T, A, B>)this) : Optional.empty();
+     }
+ 
+     record CompositionOptic<Proof extends K1, S, T, A, B>(List<? extends Optic<? super Proof, ?, ?, ?, ?>> optics)
+diff --git a/com/mojang/datafixers/optics/Optics.java b/com/mojang/datafixers/optics/Optics.java
+index 1e4c0cf8085a78f858a467502394ba82d8e1b904b10767a06927d193ea678a3c..e0b48acc53856c3b317ca3f8efbde7ca9952790d72e3f4231ca0801914f76ebe 100644
+--- a/com/mojang/datafixers/optics/Optics.java
++++ b/com/mojang/datafixers/optics/Optics.java
+@@ -73,7 +73,7 @@ public abstract class Optics {
+     }
+ 
+     public static <S, T> Adapter<S, T, S, T> id() {
+-        return IdAdapter.INSTANCE;
++        return (Adapter<S, T, S, T>)IdAdapter.INSTANCE;
+     }
+ 
+     public static boolean isId(Optic<?, ?, ?, ?, ?> optic) {
+diff --git a/com/mojang/datafixers/optics/Prism.java b/com/mojang/datafixers/optics/Prism.java
+index 3fdbf1ac97d6fe31a57dec9ed3e92622f4500754b9365bbc5429db9e1ef1e46b..7a9d49435cef9229e2e2d81861640eebfa10da1a446d750e894febed5b6ec3eb 100644
+--- a/com/mojang/datafixers/optics/Prism.java
++++ b/com/mojang/datafixers/optics/Prism.java
+@@ -33,10 +33,11 @@ public interface Prism<S, T, A, B> extends App2<Prism.Mu<A, B>, S, T>, Optic<Coc
+         ) {
+             return prismBox -> {
+                 return Optics.prism(c -> {
+-                    return Prism.<S, T, A, B>unbox(prismBox).match((S)g.apply((C)c)).mapLeft(h);
+-                }, b -> {
+-                    return (T)h.apply(Prism.<S, B, A, B>unbox(prismBox).build((B)b));
+-                });
++                        return Prism.unbox(prismBox).match(g.apply(c)).mapLeft(h);
++                    }, b -> {
++                        return h.apply(Prism.unbox(prismBox).build(b));
++                    }
++                );
+             };
+         }
+ 
+@@ -45,27 +46,31 @@ public interface Prism<S, T, A, B> extends App2<Prism.Mu<A, B>, S, T>, Optic<Coc
+             Prism<A, B, A2, B2> prism = Prism.unbox(input);
+             return Optics.prism(either -> {
+                 return either.map(a -> {
+-                    return (Either<Either<B, C>, A>)prism.match((A)a).mapLeft(Either::left);
++                    return prism.match(a).mapLeft(Either::left);
+                 }, c -> {
+-                    return Either.left(Either.right((C)c));
++                    return Either.left(Either.right(c));
+                 });
+             }, b -> {
+-                return Either.left(prism.build((B2)b));
++                return Either.left(prism.build(b));
+             });
+         }
+ 
+         @Override
+         public <A, B, C> App2<Prism.Mu<A2, B2>, Either<C, A>, Either<C, B>> right(App2<Prism.Mu<A2, B2>, A, B> input) {
+             Prism<A, B, A2, B2> prism = Prism.unbox(input);
+-            return Optics.prism(either -> {
+-                return either.map(c -> {
+-                    return Either.left(Either.left((C)c));
+-                }, a -> {
+-                    return (Either<Either<C, B>, A>)prism.match((A)a).mapLeft(Either::right);
+-                });
+-            }, b -> {
+-                return Either.right(prism.build((B2)b));
+-            });
++            return Optics.prism(
++                (Either<C, A> either) -> {
++                    return either.map(
++                        c -> {
++                            return Either.left(Either.left(c));
++                        },
++                        a -> {
++                            return prism.match(a).mapLeft(Either::right);
++                        }
++                    );
++                },
++                (B2 b) -> Either.right(prism.build(b))
++            );
+         }
+     }
+ 
+diff --git a/com/mojang/datafixers/optics/Procompose.java b/com/mojang/datafixers/optics/Procompose.java
+index ad7efbdd98870d6cd6aa9f428d8e54230580fd1b6ca5dd4f42c63e7e818344ac..9ab0e3bc3de4e685d1384637f653c15d3aca43e7d6d530071d2cbb10c3d94aac 100644
+--- a/com/mojang/datafixers/optics/Procompose.java
++++ b/com/mojang/datafixers/optics/Procompose.java
+@@ -56,8 +56,8 @@ public final class Procompose<F extends K2, G extends K2, A, B, C> implements Ap
+             Procompose<F, G, A, B, E> cmp, Function<C, A> g, Function<B, D> h
+         ) {
+             return new Procompose<>(() -> {
+-                return this.p1.dimap(g, Function.identity()).apply((App2<F, A, D>)cmp.first.get());
+-            }, this.p2.dimap(Function.identity(), h).apply((App2<G, D, B>)cmp.second));
++                return this.p1.dimap(g, Function.<E>identity()).apply(cmp.first.get());
++            }, this.p2.dimap(Function.<E>identity(), h).apply(cmp.second));
+         }
+     }
+ }
+diff --git a/com/mojang/datafixers/optics/ReForget.java b/com/mojang/datafixers/optics/ReForget.java
+index 4aaace4b873aca7f0f993c844e16703557306624e293cd09969dc947ee8a93db..02ad63cc71dbb502847f5349d2f6bb03df84b3c204a436d150e054c981d86156 100644
+--- a/com/mojang/datafixers/optics/ReForget.java
++++ b/com/mojang/datafixers/optics/ReForget.java
+@@ -26,8 +26,8 @@ interface ReForget<R, A, B> extends App2<ReForget.Mu<R>, A, B> {
+             Function<C, A> g, Function<B, D> h
+         ) {
+             return input -> {
+-                return (App2<ReForget.Mu<R>, C, D>)Optics.reForget(r -> {
+-                    return (B)h.apply(ReForget.unbox(input).run(r));
++                return Optics.reForget(r -> {
++                    return h.apply(ReForget.unbox(input).run(r));
+                 });
+             };
+         }
+diff --git a/com/mojang/datafixers/optics/ReForgetC.java b/com/mojang/datafixers/optics/ReForgetC.java
+index 1cd87ce9802e0f17a9aa38940035f402904d9b29bab00e518cb568e0de85a573..872c576def6bcb93f0f8b5e33ddcac416ce023d020e7112f26a0a87dce567ea3 100644
+--- a/com/mojang/datafixers/optics/ReForgetC.java
++++ b/com/mojang/datafixers/optics/ReForgetC.java
+@@ -33,13 +33,13 @@ public interface ReForgetC<R, A, B> extends App2<ReForgetC.Mu<R>, A, B> {
+             Function<C, A> g, Function<B, D> h
+         ) {
+             return input -> {
+-                return (App2<ReForgetC.Mu<R>, C, D>)Optics.reForgetC("dimap", ReForgetC.unbox(input).impl().map(f -> {
++                return Optics.reForgetC("dimap", ReForgetC.unbox(input).impl().map(f -> {
+                     return Either.left(r -> {
+-                        return (B)h.apply(f.apply(r));
++                        return h.apply(f.apply(r));
+                     });
+                 }, f -> {
+                     return Either.right((c, r) -> {
+-                        return (B)h.apply((B)f.apply(g.apply((C)c), r));
++                        return h.apply(f.apply(g.apply(c), r));
+                     });
+                 }));
+             };
+diff --git a/com/mojang/datafixers/optics/ReForgetE.java b/com/mojang/datafixers/optics/ReForgetE.java
+index 366da6ae90fe763c6a6477a6fed2f7750eadd66e680a032e665c97d3dee2ad4f..0da20e47e5aa35b34eda071a3e07fdf9767365831a0bc876f46277061262f4e2 100644
+--- a/com/mojang/datafixers/optics/ReForgetE.java
++++ b/com/mojang/datafixers/optics/ReForgetE.java
+@@ -23,10 +23,10 @@ interface ReForgetE<R, A, B> extends App2<ReForgetE.Mu<R>, A, B> {
+             Function<C, A> g, Function<B, D> h
+         ) {
+             return input -> {
+-                return (App2<ReForgetE.Mu<R>, C, D>)Optics.reForgetE("dimap", e -> {
++                return Optics.reForgetE("dimap", e -> {
+                     Either<A, R> either = e.mapLeft(g);
+-                    B b = ReForgetE.<R, A, B>unbox(input).run(either);
+-                    return (B)h.apply(b);
++                    B b = ReForgetE.unbox(input).run(either);
++                    return h.apply(b);
+                 });
+             };
+         }
+diff --git a/com/mojang/datafixers/optics/ReForgetEP.java b/com/mojang/datafixers/optics/ReForgetEP.java
+index 5295fde48bf8a95985bcd31d7c0eb486fdc611cb6d59dd6c25752fe318c7b2d4..19ab69caaaf93e949f4e1e75a3349f75be9a84803e3b9391be38a979434ffbd7 100644
+--- a/com/mojang/datafixers/optics/ReForgetEP.java
++++ b/com/mojang/datafixers/optics/ReForgetEP.java
+@@ -24,12 +24,12 @@ interface ReForgetEP<R, A, B> extends App2<ReForgetEP.Mu<R>, A, B> {
+             Function<C, A> g, Function<B, D> h
+         ) {
+             return input -> {
+-                return (App2<ReForgetEP.Mu<R>, C, D>)Optics.reForgetEP("dimap", e -> {
++                return Optics.reForgetEP("dimap", e -> {
+                     Either<A, Pair<A, R>> either = e.mapBoth(g, p -> {
+-                        return Pair.of(g.apply((C)p.getFirst()), p.getSecond());
++                        return Pair.of(g.apply(p.getFirst()), p.getSecond());
+                     });
+-                    B b = ReForgetEP.<R, A, B>unbox(input).run(either);
+-                    return (B)h.apply(b);
++                    B b = ReForgetEP.unbox(input).run(either);
++                    return h.apply(b);
+                 });
+             };
+         }
+diff --git a/com/mojang/datafixers/optics/ReForgetP.java b/com/mojang/datafixers/optics/ReForgetP.java
+index 297d54f7064146ef7bb99434bd33e15d04d01aebe22dedfd49d62ed37ae812cb..c8a5fa2546e6cca6e3547332e9143a154d3c836f80107a5f2ef2d11d4f97692d 100644
+--- a/com/mojang/datafixers/optics/ReForgetP.java
++++ b/com/mojang/datafixers/optics/ReForgetP.java
+@@ -24,10 +24,10 @@ interface ReForgetP<R, A, B> extends App2<ReForgetP.Mu<R>, A, B> {
+             Function<C, A> g, Function<B, D> h
+         ) {
+             return input -> {
+-                return (App2<ReForgetP.Mu<R>, C, D>)Optics.reForgetP("dimap", (c, r) -> {
+-                    A a = g.apply((C)c);
+-                    B b = ReForgetP.<R, A, B>unbox(input).run(a, r);
+-                    return (B)h.apply(b);
++                return Optics.reForgetP("dimap", (c, r) -> {
++                    A a = g.apply(c);
++                    B b = ReForgetP.unbox(input).run(a, r);
++                    return h.apply(b);
+                 });
+             };
+         }
+diff --git a/com/mojang/datafixers/optics/Traversal.java b/com/mojang/datafixers/optics/Traversal.java
+index edeaa9219521fed1a13b4ca49ef3b91ff23075bfa6c463dac93be8409d2369bd..c4c69211b71a649d06df5347c7cee327236e213800637d53ad0ec4de2d62fcbc 100644
+--- a/com/mojang/datafixers/optics/Traversal.java
++++ b/com/mojang/datafixers/optics/Traversal.java
+@@ -38,9 +38,9 @@ public interface Traversal<S, T, A, B>
+                         return c -> {
+                             return applicative.map(
+                                 h,
+-                                Traversal.<S, B, A, B>unbox(tr)
+-                                    .wander(applicative, (FunctionType<A, App<F, B>>)input)
+-                                    .apply((S)g.apply(c))
++                                Traversal.unbox(tr)
++                                    .wander(applicative, input)
++                                    .apply(g.apply(c))
+                             );
+                         };
+                     }
+diff --git a/com/mojang/datafixers/optics/profunctors/Cartesian.java b/com/mojang/datafixers/optics/profunctors/Cartesian.java
+index 21a1861a946ef94bade924e83e4123302205f168c0c89a8a1cab591d383d1d7c..974081a2a192f78be1a25cd7c78561766f70e2e3c21f2d3a3e3adb75e16fb256 100644
+--- a/com/mojang/datafixers/optics/profunctors/Cartesian.java
++++ b/com/mojang/datafixers/optics/profunctors/Cartesian.java
+@@ -16,7 +16,7 @@ public interface Cartesian<P extends K2, Mu extends Cartesian.Mu> extends Profun
+     <A, B, C> App2<P, Pair<A, C>, Pair<B, C>> first(App2<P, A, B> var1);
+ 
+     default <A, B, C> App2<P, Pair<C, A>, Pair<C, B>> second(App2<P, A, B> input) {
+-        return this.dimap(this.first(input), Pair::swap, Pair::swap);
++        return this.dimap(this.first(input), (Pair<C, A> p) -> p.swap(), (Pair<B, C> p) -> p.swap());
+     }
+ 
+     default FunctorProfunctor<CartesianLike.Mu, P, FunctorProfunctor.Mu<CartesianLike.Mu>> toFP2() {
+@@ -31,7 +31,7 @@ public interface Cartesian<P extends K2, Mu extends Cartesian.Mu> extends Profun
+             private <A, B, F extends K1, C> App2<P, App<F, A>, App<F, B>> cap(
+                 CartesianLike<F, C, ?> cLike, App2<P, A, B> input
+             ) {
+-                return Cartesian.this.dimap(Cartesian.this.first(input), p -> {
++                return Cartesian.this.dimap(Cartesian.this.first(input), (App<F, A> p) -> {
+                     return Pair.unbox(cLike.to(p));
+                 }, cLike::from);
+             }
+diff --git a/com/mojang/datafixers/optics/profunctors/Cocartesian.java b/com/mojang/datafixers/optics/profunctors/Cocartesian.java
+index d4d7f325178eaaca7a215a858880dff82a685e24ca10ba877a4bd75de16b77da..08e428b2f2f0faa9784542fe69ab47ccda6526de43471505b06f41aa83573af6 100644
+--- a/com/mojang/datafixers/optics/profunctors/Cocartesian.java
++++ b/com/mojang/datafixers/optics/profunctors/Cocartesian.java
+@@ -16,7 +16,7 @@ public interface Cocartesian<P extends K2, Mu extends Cocartesian.Mu> extends Pr
+     <A, B, C> App2<P, Either<A, C>, Either<B, C>> left(App2<P, A, B> var1);
+ 
+     default <A, B, C> App2<P, Either<C, A>, Either<C, B>> right(App2<P, A, B> input) {
+-        return this.dimap(this.left(input), Either::swap, Either::swap);
++        return this.dimap(this.left(input), (Either<C, A> e) -> e.swap(), (Either<B, C> e) -> e.swap());
+     }
+ 
+     default FunctorProfunctor<CocartesianLike.Mu, P, FunctorProfunctor.Mu<CocartesianLike.Mu>> toFP() {
+@@ -31,7 +31,7 @@ public interface Cocartesian<P extends K2, Mu extends Cocartesian.Mu> extends Pr
+             private <A, B, F extends K1, C> App2<P, App<F, A>, App<F, B>> cap(
+                 CocartesianLike<F, C, ?> cLike, App2<P, A, B> input
+             ) {
+-                return Cocartesian.this.dimap(Cocartesian.this.left(input), e -> {
++                return Cocartesian.this.dimap(Cocartesian.this.left(input), (App<F, A> e) -> {
+                     return Either.unbox(cLike.to(e));
+                 }, cLike::from);
+             }
+diff --git a/com/mojang/datafixers/optics/profunctors/TraversalP.java b/com/mojang/datafixers/optics/profunctors/TraversalP.java
+index 81c67ee58b20be5b1d8023b170c10d36ce50f63555cb929e4590fa2f58c2b847..0ee99650943a916f403f9de30b963b2c58f4542e05425843b7a98c7a10e225e0 100644
+--- a/com/mojang/datafixers/optics/profunctors/TraversalP.java
++++ b/com/mojang/datafixers/optics/profunctors/TraversalP.java
+@@ -39,14 +39,14 @@ public interface TraversalP<P extends K2, Mu extends TraversalP.Mu> extends Affi
+ 
+     @Override
+     default <A, B, C> App2<P, Pair<A, C>, Pair<B, C>> first(App2<P, A, B> input) {
+-        return this.dimap(this.traverse(new Pair.Instance(), input), box -> {
++        return this.dimap(this.traverse(new Pair.Instance<>(), input), (Pair<A, C> box) -> {
+             return box;
+         }, Pair::unbox);
+     }
+ 
+     @Override
+     default <A, B, C> App2<P, Either<A, C>, Either<B, C>> left(App2<P, A, B> input) {
+-        return this.dimap(this.traverse(new Either.Instance(), input), box -> {
++        return this.dimap(this.traverse(new Either.Instance<>(), input), (Either<A, C> box) -> {
+             return box;
+         }, Either::unbox);
+     }
+diff --git a/com/mojang/datafixers/types/templates/Check.java b/com/mojang/datafixers/types/templates/Check.java
+index cee6e02426103bae4ee5c4417c531a14b973b59b717096292eabbc1dda4bc055..b4330b870b86d8adca47ebd6ca602cbbd3ed0bb0c8bb013bc611fb723c0b9d21 100644
+--- a/com/mojang/datafixers/types/templates/Check.java
++++ b/com/mojang/datafixers/types/templates/Check.java
+@@ -65,7 +65,7 @@ public record Check(String name, int index, TypeTemplate element) implements Typ
+     }
+ 
+     private <A> RewriteResult<?, ?> cap(TypeFamily family, int index, RewriteResult<A, ?> elementResult) {
+-        return Check.CheckType.fix((Check.CheckType<?>)this.apply(family).apply(index), elementResult);
++        return Check.CheckType.fix((Check.CheckType<A>)this.apply(family).apply(index), elementResult);
+     }
+ 
+     @Override
+diff --git a/com/mojang/datafixers/util/Either.java b/com/mojang/datafixers/util/Either.java
+index d609b8e4588f8289b0141f3f50b678863c966ea0f18491348fcd0a2e0cc58cb4..bd5ca54fad251693eeb5a93b2e93c85052fc338517d3030f37aeba48a0affbe5 100644
+--- a/com/mojang/datafixers/util/Either.java
++++ b/com/mojang/datafixers/util/Either.java
+@@ -83,12 +83,12 @@ public abstract class Either<L, R> implements App<Either.Mu<R>, L> {
+         CocartesianLike<Either.Mu<R2>, R2, Either.Instance.Mu<R2>> {
+         @Override
+         public <T, R> App<Either.Mu<R2>, R> map(Function<? super T, ? extends R> func, App<Either.Mu<R2>, T> ts) {
+-            return (App<Either.Mu<R2>, R>)Either.unbox(ts).mapLeft(func);
++            return Either.unbox(ts).mapLeft(func);
+         }
+ 
+         @Override
+         public <A> App<Either.Mu<R2>, A> point(A a) {
+-            return (App<Either.Mu<R2>, A>)Either.left(a);
++            return left(a);
+         }
+ 
+         @Override
+@@ -96,8 +96,8 @@ public abstract class Either<L, R> implements App<Either.Mu<R>, L> {
+             App<Either.Mu<R2>, Function<A, R>> function
+         ) {
+             return a -> {
+-                return (App<Either.Mu<R2>, R>)Either.unbox(function).flatMap(f -> {
+-                    return (Either<R, R2>)Either.unbox(a).mapLeft(f);
++                return Either.unbox(function).flatMap(f -> {
++                    return Either.unbox(a).mapLeft(f);
+                 });
+             };
+         }
+@@ -107,10 +107,10 @@ public abstract class Either<L, R> implements App<Either.Mu<R>, L> {
+             App<Either.Mu<R2>, BiFunction<A, B, R>> function
+         ) {
+             return (a, b) -> {
+-                return (App<Either.Mu<R2>, R>)Either.unbox(function).flatMap(f -> {
+-                    return (Either<R, R2>)Either.<Object, R>unbox(a).flatMap(av -> {
+-                        return Either.<L, R>unbox(b).mapLeft(bv -> {
+-                            return (R)f.apply(av, bv);
++                return Either.unbox(function).flatMap(f -> {
++                    return Either.unbox(a).flatMap(av -> {
++                        return Either.unbox(b).mapLeft(bv -> {
++                            return f.apply(av, bv);
+                         });
+                     });
+                 });
+@@ -122,10 +122,10 @@ public abstract class Either<L, R> implements App<Either.Mu<R>, L> {
+             Applicative<F, ?> applicative, Function<A, App<F, B>> function, App<Either.Mu<R2>, A> input
+         ) {
+             return Either.unbox(input).map(l -> {
+-                App<F, B> b = function.apply((A)l);
+-                return applicative.ap(Either::left, (App<F, L>)b);
++                App<F, B> b = function.apply(l);
++                return applicative.ap(Either::left, b);
+             }, r -> {
+-                return applicative.point((App<Either.Mu<R2>, B>)Either.right(r));
++                return applicative.point(right(r));
+             });
+         }
+ 
+@@ -152,7 +152,7 @@ public abstract class Either<L, R> implements App<Either.Mu<R>, L> {
+ 
+         @Override
+         public <C, D> Either<C, D> mapBoth(Function<? super L, ? extends C> f1, Function<? super R, ? extends D> f2) {
+-            return (Either<C, D>)(new Either.Left<>(f1.apply(this.value)));
++            return new Either.Left<>(f1.apply(this.value));
+         }
+ 
+         @Override
+@@ -216,7 +216,7 @@ public abstract class Either<L, R> implements App<Either.Mu<R>, L> {
+ 
+         @Override
+         public <C, D> Either<C, D> mapBoth(Function<? super L, ? extends C> f1, Function<? super R, ? extends D> f2) {
+-            return (Either<C, D>)(new Either.Right<>(f2.apply(this.value)));
++            return new Right<>(f2.apply(this.value));
+         }
+ 
+         @Override
+diff --git a/com/mojang/serialization/DynamicLike.java b/com/mojang/serialization/DynamicLike.java
+index b52b1b661d3f7332949a9d786e6b222b3f4822e5c48b8d377d0fe88450a491b2..5873f9bbd4f5b5959235fce4d838ca81d89e117757d64ba6d3fcd82cd39186e5 100644
+--- a/com/mojang/serialization/DynamicLike.java
++++ b/com/mojang/serialization/DynamicLike.java
+@@ -79,51 +79,51 @@ public abstract class DynamicLike<T> {
+ 
+     public <E> DataResult<List<E>> readList(Decoder<E> decoder) {
+         return this.asStreamOpt().map(s -> {
+-            return s.<DataResult<E>>map(d -> {
++            return s.map(d -> {
+                 return d.read(decoder);
+-            }).collect(Collectors.toList());
++            }).collect(Collectors.<App<DataResult.Mu, E>>toList());
+         }).flatMap(l -> {
+-            return DataResult.unbox(ListBox.flip(DataResult.instance(), (List<App<DataResult.Mu, E>>)l));
++            return DataResult.unbox(ListBox.flip(DataResult.instance(), l));
+         });
+     }
+ 
+     public <E> DataResult<List<E>> readList(Function<? super Dynamic<?>, ? extends DataResult<? extends E>> decoder) {
+         return this.asStreamOpt().map(s -> {
+-            return s.map((Function<? super Dynamic<T>, ? extends DataResult<? extends E>>)decoder).map(r -> {
++            return s.map(decoder).map(r -> {
+                 return r.map(e -> {
+-                    return (T)e;
++                    return (E)e;
+                 });
+-            }).collect(Collectors.toList());
++            }).collect(Collectors.<App<DataResult.Mu, E>>toList());
+         }).flatMap(l -> {
+-            return DataResult.unbox(ListBox.flip(DataResult.instance(), (List<App<DataResult.Mu, E>>)l));
++            return DataResult.unbox(ListBox.flip(DataResult.instance(), l));
+         });
+     }
+ 
+     public <K, V> DataResult<List<Pair<K, V>>> readMap(Decoder<K> keyDecoder, Decoder<V> valueDecoder) {
+         return this.asMapOpt().map(stream -> {
+-            return stream.<DataResult<Pair<? super K, ? super V>>>map(p -> {
++            return stream.map(p -> {
+                 return p.getFirst().read(keyDecoder).flatMap(f -> {
+-                    return ((Dynamic)p.getSecond()).read(valueDecoder).map(s -> {
+-                        return Pair.of((K)f, s);
++                    return p.getSecond().read(valueDecoder).map(s -> {
++                        return Pair.of(f, s);
+                     });
+                 });
+-            }).collect(Collectors.toList());
++            }).collect(Collectors.<App<DataResult.Mu, Pair<K, V>>>toList());
+         }).flatMap(l -> {
+-            return DataResult.unbox(ListBox.flip(DataResult.instance(), (List<App<DataResult.Mu, Pair<K, V>>>)l));
++            return DataResult.unbox(ListBox.flip(DataResult.instance(), l));
+         });
+     }
+ 
+     public <K, V> DataResult<List<Pair<K, V>>> readMap(Decoder<K> keyDecoder, Function<K, Decoder<V>> valueDecoder) {
+         return this.asMapOpt().map(stream -> {
+-            return stream.<DataResult<Pair<? super K, ? super V>>>map(p -> {
++            return stream.map(p -> {
+                 return p.getFirst().read(keyDecoder).flatMap(f -> {
+-                    return ((Dynamic)p.getSecond()).read(valueDecoder.apply((K)f)).map(s -> {
+-                        return Pair.of((K)f, s);
++                    return p.getSecond().read(valueDecoder.apply(f)).map(s -> {
++                        return Pair.of(f, s);
+                     });
+                 });
+-            }).collect(Collectors.toList());
++            }).collect(Collectors.<App<DataResult.Mu, Pair<K, V>>>toList());
+         }).flatMap(l -> {
+-            return DataResult.unbox(ListBox.flip(DataResult.instance(), (List<App<DataResult.Mu, Pair<K, V>>>)l));
++            return DataResult.unbox(ListBox.flip(DataResult.instance(), l));
+         });
+     }
+ 
+@@ -132,7 +132,7 @@ public abstract class DynamicLike<T> {
+             AtomicReference<DataResult<R>> result = new AtomicReference<>(empty);
+             stream.forEach(p -> {
+                 result.setPlain(result.getPlain().flatMap(r -> {
+-                    return combiner.apply((R)r, (Dynamic<T>)p.getFirst(), (Dynamic<T>)p.getSecond());
++                    return combiner.apply(r, p.getFirst(), p.getSecond());
+                 }));
+             });
+             return result.getPlain();
+diff --git a/com/mojang/serialization/MapCodec.java b/com/mojang/serialization/MapCodec.java
+index 71f1053b4b28f7e2901304bf44ddb51b8cc5b78142284bb542a74450d8a780d1..0d19aef70c7cd906b9ffce516f91cd52af867ad786515143f3a23ffcb84ad62d 100644
+--- a/com/mojang/serialization/MapCodec.java
++++ b/com/mojang/serialization/MapCodec.java
+@@ -98,6 +98,7 @@ public abstract class MapCodec<A> extends CompressorHolder implements MapDecoder
+         return this.codec().fieldOf(name);
+     }
+ 
++    @Override
+     public MapCodec<A> withLifecycle(final Lifecycle lifecycle) {
+         return new MapCodec<A>() {
+             @Override
+@@ -407,8 +408,8 @@ public abstract class MapCodec<A> extends CompressorHolder implements MapDecoder
+         @Override
+         public <T> DataResult<O> decode(DynamicOps<T> ops, MapLike<T> input) {
+             return this.codec.decode(ops, input).flatMap(base -> {
+-                return this.splitter.apply((O)base).getSecond().decode(ops, input).map(e -> {
+-                    return (T)this.combiner.apply((O)base, (E)e);
++                return this.splitter.apply(base).getSecond().decode(ops, input).map(e -> {
++                    return this.combiner.apply(base, e);
+                 }).setLifecycle(Lifecycle.experimental());
+             });
+         }
+diff --git a/com/mojang/serialization/MapDecoder.java b/com/mojang/serialization/MapDecoder.java
+index 3cf0c1e5c465e8e991b8096f2adb9c84965279e16011ad5eac2a8006db18db69..7be8bd1ee401bbcac376461692667c7b9efe14350c0e7ef0bf6167efcccbd356 100644
+--- a/com/mojang/serialization/MapDecoder.java
++++ b/com/mojang/serialization/MapDecoder.java
+@@ -119,7 +119,7 @@ public interface MapDecoder<A> extends Keyable {
+             public <T> DataResult<E> decode(DynamicOps<T> ops, MapLike<T> input) {
+                 return MapDecoder.this.decode(ops, input).flatMap(f -> {
+                     return decoder.decode(ops, input).map(e -> {
+-                        return (T)e.apply((A)f);
++                        return e.apply(f);
+                     });
+                 });
+             }
+diff --git a/com/mojang/serialization/codecs/ListCodec.java b/com/mojang/serialization/codecs/ListCodec.java
+index 57a3fa1080fdf3e7716671a28f0798990f83bca512851cab3a27641867f3364d..5fbf41b097b5db3135f7fe15f2496bde0bf0dddc64463a54191cdfe4520de8a6 100644
+--- a/com/mojang/serialization/codecs/ListCodec.java
++++ b/com/mojang/serialization/codecs/ListCodec.java
+@@ -46,7 +46,7 @@ public record ListCodec<E>(Codec<E> elementCodec, int minSize, int maxSize) impl
+     @Override
+     public <T> DataResult<Pair<List<E>, T>> decode(DynamicOps<T> ops, T input) {
+         return ops.getList(input).setLifecycle(Lifecycle.stable()).flatMap(stream -> {
+-            ListCodec<E>.DecoderState<T> decoder = new ListCodec.DecoderState<>(ops);
++            ListCodec<E>.DecoderState<T> decoder = new DecoderState<T>(ops);
+             stream.accept(decoder::accept);
+             return decoder.build();
+         });
+diff --git a/com/mojang/serialization/codecs/RecordCodecBuilder.java b/com/mojang/serialization/codecs/RecordCodecBuilder.java
+index a40c3421ee3c3554d2266b8ebb2d94961b70fbfdb5774fe5b71f0517cfe0a5e9..a4fc3bc15145e5ebda03c08e9779dda6937e1ea784f5ad3134579d50504f1f83 100644
+--- a/com/mojang/serialization/codecs/RecordCodecBuilder.java
++++ b/com/mojang/serialization/codecs/RecordCodecBuilder.java
+@@ -76,13 +76,13 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
+     public static <O> Codec<O> create(
+         Function<RecordCodecBuilder.Instance<O>, ? extends App<RecordCodecBuilder.Mu<O>, O>> builder
+     ) {
+-        return build((App<RecordCodecBuilder.Mu<O>, O>)builder.apply(instance())).codec();
++        return build(builder.apply(instance())).codec();
+     }
+ 
+     public static <O> MapCodec<O> mapCodec(
+         Function<RecordCodecBuilder.Instance<O>, ? extends App<RecordCodecBuilder.Mu<O>, O>> builder
+     ) {
+-        return build((App<RecordCodecBuilder.Mu<O>, O>)builder.apply(instance()));
++        return build(builder.apply(instance()));
+     }
+ 
+     public <E> RecordCodecBuilder<O, E> dependent(
+@@ -171,8 +171,8 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
+                     final A aFromO = a.getter.apply(o);
+                     return new MapEncoder.Implementation<R>() {
+                         @Override
+-                        public <T> RecordBuilder<T> encode(Object input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+-                            fEnc.encode((Function<Object, >)a1 -> {
++                        public <T> RecordBuilder<T> encode(R input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
++                            fEnc.encode(a1 -> {
+                                 return input;
+                             }, ops, prefix);
+                             aEnc.encode(aFromO, ops, prefix);
+@@ -194,7 +194,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
+                     public <T> DataResult<R> decode(DynamicOps<T> ops, MapLike<T> input) {
+                         return a.decoder.decode(ops, input).flatMap(ar -> {
+                             return f.decoder.decode(ops, input).map(fr -> {
+-                                return (T)fr.apply(ar);
++                                return fr.apply(ar);
+                             });
+                         });
+                     }
+@@ -234,7 +234,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
+                     return new MapEncoder.Implementation<R>() {
+                         @Override
+                         public <T> RecordBuilder<T> encode(R input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+-                            fEncoder.encode((BiFunction<Object, Object, >)(a1, b1) -> {
++                            fEncoder.encode((a1, b1) -> {
+                                 return input;
+                             }, ops, prefix);
+                             aEncoder.encode(aFromO, ops, prefix);
+@@ -307,7 +307,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
+                     return new MapEncoder.Implementation<R>() {
+                         @Override
+                         public <T> RecordBuilder<T> encode(R input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+-                            fEncoder.encode((Function3<Object, Object, Object, >)(t1x, t2x, t3x) -> {
++                            fEncoder.encode((t1, t2, t3) -> {
+                                 return input;
+                             }, ops, prefix);
+                             e1.encode(v1, ops, prefix);
+@@ -393,7 +393,7 @@ public final class RecordCodecBuilder<O, F> implements App<RecordCodecBuilder.Mu
+                     return new MapEncoder.Implementation<R>() {
+                         @Override
+                         public <T> RecordBuilder<T> encode(R input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+-                            fEncoder.encode((Function4<Object, Object, Object, Object, >)(t1x, t2x, t3x, t4x) -> {
++                            fEncoder.encode((t1, t2, t3, t4) -> {
+                                 return input;
+                             }, ops, prefix);
+                             e1.encode(v1, ops, prefix);
+diff --git a/net/minecraft/advancements/predicates/MinMaxBounds.java b/net/minecraft/advancements/predicates/MinMaxBounds.java
+index c34a7293d86f44c5cc868ed41718043e198b72f06da8e0246294f285d2d998b1..ee6b9fef76a828f3c5474c2d7e2145670dd360c6153522d39e7c2600acff8877 100644
+--- a/net/minecraft/advancements/predicates/MinMaxBounds.java
++++ b/net/minecraft/advancements/predicates/MinMaxBounds.java
+@@ -84,7 +84,7 @@ public interface MinMaxBounds<T extends Number & Comparable<T>> {
+         }
+ 
+         public static <T extends Number & Comparable<T>> MinMaxBounds.Bounds<T> any() {
+-            return new MinMaxBounds.Bounds<>(Optional.empty(), Optional.empty());
++            return new MinMaxBounds.Bounds<T>(Optional.empty(), Optional.empty());
+         }
+ 
+         public static <T extends Number & Comparable<T>> MinMaxBounds.Bounds<T> exactly(final T value) {
+diff --git a/net/minecraft/advancements/predicates/entity/EntityFlagsPredicate.java b/net/minecraft/advancements/predicates/entity/EntityFlagsPredicate.java
+index 4ca9ac7566dc0475bcb66de4ac93bab0d4d8d2db55a436b48b8b1c08d24f3a5a..b0bdbde0905993885a21199e4fee6b212e85d65e4f169719686162a18f2f9a40 100644
+--- a/net/minecraft/advancements/predicates/entity/EntityFlagsPredicate.java
++++ b/net/minecraft/advancements/predicates/entity/EntityFlagsPredicate.java
+@@ -74,8 +74,8 @@ public record EntityFlagsPredicate(
+                     && entity instanceof LivingEntity living
+                     && living.isFallFlying() != this.isFallFlying.get()
+                 ? false
+-                : !(this.isBaby.isPresent() && entity instanceof LivingEntity living)
+-                    || living.isBaby() == this.isBaby.get();
++                : !(this.isBaby.isPresent() && entity instanceof LivingEntity living2)
++                    || living2.isBaby() == this.isBaby.get();
+         }
+     }
+ 
+diff --git a/net/minecraft/advancements/predicates/entity/PlayerPredicate.java b/net/minecraft/advancements/predicates/entity/PlayerPredicate.java
+index b56eea77e041d6c88093208852ccd9110b478d297c750b3fc164c67322be3b00..71151bc8060a46ca891317874e5ca744971ee99dee065cbe063863136ccb6ad2 100644
+--- a/net/minecraft/advancements/predicates/entity/PlayerPredicate.java
++++ b/net/minecraft/advancements/predicates/entity/PlayerPredicate.java
+@@ -295,11 +295,11 @@ public record PlayerPredicate(
+             return RecordCodecBuilder.mapCodec(
+                 i -> {
+                     return i.group(
+-                            (App<RecordCodecBuilder.Mu<? extends PlayerPredicate.StatMatcher<?>>, Holder<T>>)type.getRegistry()
++                            type.getRegistry()
+                                 .holderByNameCodec()
+                                 .fieldOf("stat")
+                                 .forGetter(PlayerPredicate.StatMatcher::value),
+-                            (App<RecordCodecBuilder.Mu<? extends PlayerPredicate.StatMatcher<?>>, MinMaxBounds.Ints>)MinMaxBounds.Ints.CODEC
++                            MinMaxBounds.Ints.CODEC
+                                 .optionalFieldOf("value", MinMaxBounds.Ints.ANY)
+                                 .forGetter(PlayerPredicate.StatMatcher::range)
+                         )
+diff --git a/net/minecraft/commands/arguments/ArgumentSignatures.java b/net/minecraft/commands/arguments/ArgumentSignatures.java
+index 03eaed85f8b248c2f01bbd31ed37bb032eb3ab1c7ee40d1e91654f5af7fd9ff8..bec004d5b96ddccdb9c606ca1b21299fbccb202de86e45313c68de9f69e96182 100644
+--- a/net/minecraft/commands/arguments/ArgumentSignatures.java
++++ b/net/minecraft/commands/arguments/ArgumentSignatures.java
+@@ -14,7 +14,7 @@ public record ArgumentSignatures(List<ArgumentSignatures.Entry> entries) {
+     private static final int MAX_ARGUMENT_NAME_LENGTH = 16;
+ 
+     public ArgumentSignatures(final FriendlyByteBuf input) {
+-        this(input.readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 8), ArgumentSignatures.Entry::new));
++        this(input.<Entry, List<Entry>>readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 8), ArgumentSignatures.Entry::new));
+     }
+ 
+     public void write(final FriendlyByteBuf output) {
+diff --git a/net/minecraft/commands/execution/tasks/BuildContexts.java b/net/minecraft/commands/execution/tasks/BuildContexts.java
+index 71a5b0c0b5d7c4b92305e7aad0acc53fd2170d619f600b503777d9da278273a8..36205d1f974dc60cff29cafcac553bc647ac900db0f2b9c782facc1265d2e874 100644
+--- a/net/minecraft/commands/execution/tasks/BuildContexts.java
++++ b/net/minecraft/commands/execution/tasks/BuildContexts.java
+@@ -63,7 +63,7 @@ public class BuildContexts<T extends ExecutionCommandSource<T>> {
+                     }
+ 
+                     RedirectModifier<T> modifier = contextToRun.getRedirectModifier();
+-                    if (modifier instanceof CustomModifierExecutor<T> customModifierExecutor) {
++                    if (modifier instanceof CustomModifierExecutor customModifierExecutor) {
+                         customModifierExecutor.apply(
+                             originalSource,
+                             currentSources,
+@@ -113,11 +113,11 @@ public class BuildContexts<T extends ExecutionCommandSource<T>> {
+ 
+         if (currentSources.isEmpty()) {
+             if (modifiers.isReturn()) {
+-                context.queueNext(new CommandQueueEntry<>(frame, FallthroughTask.instance()));
++                context.queueNext(new CommandQueueEntry<T>(frame, FallthroughTask.instance()));
+             }
+         } else {
+             CommandContext<T> executeContext = currentStage.getTopContext();
+-            if (executeContext.getCommand() instanceof CustomCommandExecutor<T> customCommandExecutor) {
++            if (executeContext.getCommand() instanceof CustomCommandExecutor customCommandExecutor) {
+                 ExecutionControl<T> executionControl = ExecutionControl.create(context, frame);
+ 
+                 for (T executionSource : currentSources) {
+diff --git a/net/minecraft/commands/synchronization/ArgumentTypeInfos.java b/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
+index c77c36310228b0035d3fe431c86c2641b6a70ca52d88e068f5d1bf1bdded5258..9c5b28cd7a5d9be5c4fd52188cd59267040e64bf9e12abb017505a89d7b8cfb8 100644
+--- a/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
++++ b/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
+@@ -240,21 +240,21 @@ public class ArgumentTypeInfos {
+         );
+         register(registry, "time", TimeArgument.class, new TimeArgument.Info());
+         register(
+-            registry, "resource_or_tag", fixClassType(ResourceOrTagArgument.class), new ResourceOrTagArgument.Info()
++            registry, "resource_or_tag", fixClassType(ResourceOrTagArgument.class), new ResourceOrTagArgument.Info<>()
+         );
+         register(
+             registry,
+             "resource_or_tag_key",
+             fixClassType(ResourceOrTagKeyArgument.class),
+-            new ResourceOrTagKeyArgument.Info()
++            new ResourceOrTagKeyArgument.Info<>()
+         );
+-        register(registry, "resource", fixClassType(ResourceArgument.class), new ResourceArgument.Info());
+-        register(registry, "resource_key", fixClassType(ResourceKeyArgument.class), new ResourceKeyArgument.Info());
++        register(registry, "resource", fixClassType(ResourceArgument.class), new ResourceArgument.Info<>());
++        register(registry, "resource_key", fixClassType(ResourceKeyArgument.class), new ResourceKeyArgument.Info<>());
+         register(
+             registry,
+             "resource_selector",
+             fixClassType(ResourceSelectorArgument.class),
+-            new ResourceSelectorArgument.Info()
++            new ResourceSelectorArgument.Info<>()
+         );
+         register(
+             registry,
+diff --git a/net/minecraft/commands/synchronization/SuggestionProviders.java b/net/minecraft/commands/synchronization/SuggestionProviders.java
+index 8163c7e1565200fb7d5b28d0994d4aa249c987a8ca20057d9c4057e88dab78cc..1502ba90ed7bc4fa7b3909034f918011c34b45831ebf74c6b86819fabd8d1169 100644
+--- a/net/minecraft/commands/synchronization/SuggestionProviders.java
++++ b/net/minecraft/commands/synchronization/SuggestionProviders.java
+@@ -43,7 +43,7 @@ public class SuggestionProviders {
+                 "A command suggestion provider is already registered with the name '" + name + "'"
+             );
+         } else {
+-            return new SuggestionProviders.RegisteredSuggestion(name, provider);
++            return (SuggestionProvider<S>)new SuggestionProviders.RegisteredSuggestion(name, provider);
+         }
+     }
+ 
+diff --git a/net/minecraft/core/Registry.java b/net/minecraft/core/Registry.java
+index 71c1f859e1d5f467a738d1e5c3965a39ddb4f4da31da2e5167ea3eebba3277f3..1052587f065fbaf9b30c911f2d0eac528bc4a83afa06c9801e40d9a477051e49 100644
+--- a/net/minecraft/core/Registry.java
++++ b/net/minecraft/core/Registry.java
+@@ -152,7 +152,7 @@ public interface Registry<T> extends IdMap<T>, Keyable, HolderLookup.RegistryLoo
+     Holder<T> wrapAsHolder(T value);
+ 
+     default Iterable<Holder<T>> getTagOrEmpty(final TagKey<T> id) {
+-        return DataFixUtils.orElse(this.get(id), List.<T>of());
++        return DataFixUtils.orElse(this.get(id), List.of());
+     }
+ 
+     Stream<HolderSet.Named<T>> getTags();
+diff --git a/net/minecraft/core/RegistrySetBuilder.java b/net/minecraft/core/RegistrySetBuilder.java
+index 214f98e22d5f21243d11742e6ca5a916b6e748332cf8609e9592f3a970c3ce2d..ee6138f1715af699e057a53d35d43626cd61c1d0723e248c0d3ff7171ec18e75 100644
+--- a/net/minecraft/core/RegistrySetBuilder.java
++++ b/net/minecraft/core/RegistrySetBuilder.java
+@@ -501,7 +501,7 @@ public class RegistrySetBuilder {
+         }
+ 
+         private <T> Holder.Reference<T> getOrCreate(final ResourceKey<T> id) {
+-            return (Holder.Reference<T>)this.holders.computeIfAbsent(id, k -> {
++            return this.holders.computeIfAbsent((ResourceKey)id, k -> {
+                 return Holder.Reference.createStandAlone(this.owner, (ResourceKey<Object>)k);
+             });
+         }
+@@ -509,7 +509,7 @@ public class RegistrySetBuilder {
+ 
+     private static class UniversalOwner implements HolderOwner<Object> {
+         public <T> HolderOwner<T> cast() {
+-            return this;
++            return (HolderOwner<T>)this;
+         }
+     }
+ 
+diff --git a/net/minecraft/core/component/DataComponentPatch.java b/net/minecraft/core/component/DataComponentPatch.java
+index 3a0367f8726a1a6216594e11477b3d839b6285325b2a62ce7c33da5cdc61f890..09a2a2beb281e73f48f9109f5cdcb39da986b57441494e72793399d1236cee31 100644
+--- a/net/minecraft/core/component/DataComponentPatch.java
++++ b/net/minecraft/core/component/DataComponentPatch.java
+@@ -59,7 +59,7 @@ public final class DataComponentPatch {
+                     }
+                 }
+ 
+-                return map;
++                return (java.util.Map)map;
+             }
+         );
+     public static final StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch> STREAM_CODEC = createStreamCodec(
+diff --git a/net/minecraft/core/component/DataComponentType.java b/net/minecraft/core/component/DataComponentType.java
+index d18c9992e8a1893528446c2f175c6b91e687ba5d84874c1c1d38c7182c7ec372..3bed5c76431906daeaed02a3316e4e6f328f87fe1d223b4d0243724b859f80b8 100644
+--- a/net/minecraft/core/component/DataComponentType.java
++++ b/net/minecraft/core/component/DataComponentType.java
+@@ -128,7 +128,7 @@ public interface DataComponentType<T> {
+             @Override
+             public String toString() {
+                 return Util.getRegisteredName(
+-                    (Registry<DataComponentType.Builder.SimpleType<T>>)BuiltInRegistries.DATA_COMPONENT_TYPE, this
++                    BuiltInRegistries.DATA_COMPONENT_TYPE, this
+                 );
+             }
+         }
+diff --git a/net/minecraft/core/component/TypedDataComponent.java b/net/minecraft/core/component/TypedDataComponent.java
+index cb031dd76820ed27183ff1ef02659ce74f192b641ab11167e19b26b33b9437c2..368bb1209608d06abc011b393e0468fe45861360540d163b5b007a8d272d5386 100644
+--- a/net/minecraft/core/component/TypedDataComponent.java
++++ b/net/minecraft/core/component/TypedDataComponent.java
+@@ -11,7 +11,7 @@ public record TypedDataComponent<T>(DataComponentType<T> type, T value) {
+     public static final StreamCodec<RegistryFriendlyByteBuf, TypedDataComponent<?>> STREAM_CODEC = new StreamCodec<RegistryFriendlyByteBuf, TypedDataComponent<?>>() {
+         public TypedDataComponent<?> decode(final RegistryFriendlyByteBuf input) {
+             DataComponentType<?> type = DataComponentType.STREAM_CODEC.decode(input);
+-            return decodeTyped(input, (DataComponentType<T>)type);
++            return decodeTyped(input, type);
+         }
+ 
+         private static <T> TypedDataComponent<T> decodeTyped(
+@@ -21,7 +21,7 @@ public record TypedDataComponent<T>(DataComponentType<T> type, T value) {
+         }
+ 
+         public void encode(final RegistryFriendlyByteBuf output, final TypedDataComponent<?> value) {
+-            encodeCap(output, (TypedDataComponent<T>)value);
++            encodeCap(output, value);
+         }
+ 
+         private static <T> void encodeCap(final RegistryFriendlyByteBuf output, final TypedDataComponent<T> component) {
+diff --git a/net/minecraft/core/component/predicates/DataComponentPredicate.java b/net/minecraft/core/component/predicates/DataComponentPredicate.java
+index 2c881b4c67e69d1fbdc01dbb73018b64bb637dc9d7bd6fdb960bf98f91ade6da..cb45363bd0cb3a8ae1de76cbbeb6d7e8b84257eaa5545d4129d0d4bae2c315cf 100644
+--- a/net/minecraft/core/component/predicates/DataComponentPredicate.java
++++ b/net/minecraft/core/component/predicates/DataComponentPredicate.java
+@@ -32,7 +32,7 @@ public interface DataComponentPredicate {
+                     );
+             },
+             map -> {
+-                return map.entrySet().stream().map(DataComponentPredicate.Single::fromEntry).toList();
++                return map.entrySet().stream().<DataComponentPredicate.Single<?>>map(DataComponentPredicate.Single::fromEntry).toList();
+             }
+         );
+ 
+diff --git a/net/minecraft/core/registries/BuiltInRegistries.java b/net/minecraft/core/registries/BuiltInRegistries.java
+index 1b329a042888335627afbce3cd6d5eb267189049d18304cc8caa1b2f21af9662..0a1b5a9f710612692d586600ed880e92380e31f2c6e86a29a9f842df21542cfb 100644
+--- a/net/minecraft/core/registries/BuiltInRegistries.java
++++ b/net/minecraft/core/registries/BuiltInRegistries.java
+@@ -552,7 +552,7 @@ public class BuiltInRegistries {
+         LOADERS.put(key, () -> {
+             return loader.run(registry);
+         });
+-        WRITABLE_REGISTRY.register((ResourceKey<WritableRegistry<?>>)name, registry, RegistrationInfo.BUILT_IN);
++        WRITABLE_REGISTRY.register((ResourceKey)name, registry, RegistrationInfo.BUILT_IN);
+         return registry;
+     }
+ 
+diff --git a/net/minecraft/data/info/RegistryDumpReport.java b/net/minecraft/data/info/RegistryDumpReport.java
+index e2a46cdec29aef3bdb7a62cb6e4e6b106187318b50af960888b9481add2663d0..047c004c232159d0b70b31c48213ff988edb4a01818c4d3b9001138ab855f1f5 100644
+--- a/net/minecraft/data/info/RegistryDumpReport.java
++++ b/net/minecraft/data/info/RegistryDumpReport.java
+@@ -36,7 +36,7 @@ public class RegistryDumpReport implements DataProvider {
+             result.addProperty("default", defaultKey.toString());
+         }
+ 
+-        int registryId = BuiltInRegistries.REGISTRY.getId(registry);
++        int registryId = ((Registry)BuiltInRegistries.REGISTRY).getId(registry);
+         result.addProperty("protocol_id", registryId);
+         JsonObject entries = new JsonObject();
+         registry.listElements().forEach(holder -> {
+diff --git a/net/minecraft/data/loot/LootTableProvider.java b/net/minecraft/data/loot/LootTableProvider.java
+index cac223921e18010a1282c386d75f30ec83378165a7409bd5634ba7da1ba27c51..3e32e6138675f18f29ee313e1b45dc484ac85a41320bcc87309382c1cd029df7 100644
+--- a/net/minecraft/data/loot/LootTableProvider.java
++++ b/net/minecraft/data/loot/LootTableProvider.java
+@@ -108,7 +108,7 @@ public class LootTableProvider implements DataProvider {
+                 ResourceKey<LootTable> id = entry.getKey();
+                 LootTable table = entry.getValue();
+                 Path path = this.pathProvider.json(id.identifier());
+-                return DataProvider.saveStable(cache, registries, LootTable.DIRECT_CODEC, table, path);
++                return (CompletableFuture<?>)DataProvider.saveStable(cache, registries, LootTable.DIRECT_CODEC, table, path);
+             }).toArray(CompletableFuture[]::new));
+         }
+     }
+diff --git a/net/minecraft/data/registries/RegistriesDatapackGenerator.java b/net/minecraft/data/registries/RegistriesDatapackGenerator.java
+index 818d21504f32293f6f37d4d90d32c9ac1d8fce631b4476f16b9faf95939dd69a..e9e1887dc08ab1778de9274ac0cb91b0b3894894a2ba38e3aade2500c6d3e428 100644
+--- a/net/minecraft/data/registries/RegistriesDatapackGenerator.java
++++ b/net/minecraft/data/registries/RegistriesDatapackGenerator.java
+@@ -46,7 +46,7 @@ public class RegistriesDatapackGenerator implements DataProvider {
+         return registries.lookup(registryKey).map(registry -> {
+             PackOutput.PathProvider pathProvider = this.output.createRegistryElementsPathProvider(registryKey);
+             return CompletableFuture.allOf(registry.listElements().map(e -> {
+-                return dumpValue(pathProvider.json(e.key().identifier()), cache, writeOps, v.elementCodec(), e.value());
++                return (CompletableFuture<?>)dumpValue(pathProvider.json(e.key().identifier()), cache, writeOps, v.elementCodec(), e.value());
+             }).toArray(CompletableFuture[]::new));
+         });
+     }
+diff --git a/net/minecraft/locale/Language.java b/net/minecraft/locale/Language.java
+index 274285a04f65cb3bac102de340f5fe5092874eed5790c19a4095ff43c1b4474d..9818df2ce87c741d700bd31e3d4e07186bfb2ad1e93e532af6b7d940ee353d9e 100644
+--- a/net/minecraft/locale/Language.java
++++ b/net/minecraft/locale/Language.java
+@@ -60,7 +60,7 @@ public abstract class Language {
+                 return outputx -> {
+                     return logicalOrderText.visit(
+                             (style, contents) -> {
+-                                return StringDecomposer.iterateFormatted(contents, style, output)
++                                return StringDecomposer.iterateFormatted(contents, style, outputx)
+                                     ? Optional.empty()
+                                     : FormattedText.STOP_ITERATION;
+                             },
+diff --git a/net/minecraft/network/chat/LastSeenMessages.java b/net/minecraft/network/chat/LastSeenMessages.java
+index 4ca304d3b912b71521ac592a77dedc9e61ecd63ccda4332f278c41d3e5a562ab..79e399ee46f69c7e792e7ee74facb182693ae282ca6aeccf03237a22335611e9 100644
+--- a/net/minecraft/network/chat/LastSeenMessages.java
++++ b/net/minecraft/network/chat/LastSeenMessages.java
+@@ -46,7 +46,7 @@ public record LastSeenMessages(List<MessageSignature> entries) {
+         public static final LastSeenMessages.Packed EMPTY = new LastSeenMessages.Packed(List.of());
+ 
+         public Packed(final FriendlyByteBuf input) {
+-            this(input.readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 20), MessageSignature.Packed::read));
++            this(input.<MessageSignature.Packed, List<MessageSignature.Packed>>readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 20), MessageSignature.Packed::read));
+         }
+ 
+         public void write(final FriendlyByteBuf output) {
+diff --git a/net/minecraft/network/codec/StreamCodec.java b/net/minecraft/network/codec/StreamCodec.java
+index 6824c6f8bdae994bdc8fcb8eb9a27eba865619423e04bebce4d27d22687c159a..d113379fd67ec71fce2fc748ba4713be5afe15971829b75e9867aec335916123 100644
+--- a/net/minecraft/network/codec/StreamCodec.java
++++ b/net/minecraft/network/codec/StreamCodec.java
+@@ -627,7 +627,7 @@ public interface StreamCodec<B, V> extends StreamEncoder<B, V>, StreamDecoder<B,
+     }
+ 
+     default <S extends B> StreamCodec<S, V> cast() {
+-        return this;
++        return (StreamCodec<S, V>)this;
+     }
+ 
+     @FunctionalInterface
+diff --git a/net/minecraft/network/protocol/ProtocolInfoBuilder.java b/net/minecraft/network/protocol/ProtocolInfoBuilder.java
+index 04af62d884530279dcfd85f51dd2ae0fd55d0f41e7cac21ff04b47ffde000a43..05f1c533c5bb2f203f94a748af9f81cee8b6585fb485460fe3e8269b991142fe 100644
+--- a/net/minecraft/network/protocol/ProtocolInfoBuilder.java
++++ b/net/minecraft/network/protocol/ProtocolInfoBuilder.java
+@@ -45,7 +45,7 @@ public class ProtocolInfoBuilder<T extends PacketListener, B extends ByteBuf, C>
+         final D delimiterPacket
+     ) {
+         StreamCodec<ByteBuf, D> delimitedCodec = StreamCodec.unit(delimiterPacket);
+-        PacketType<D> delimiterType = (PacketType<D>)delimiterPacket.type();
++        PacketType<D> delimiterType = (PacketType<D>)(PacketType)delimiterPacket.type();
+         this.codecs.add(new ProtocolInfoBuilder.CodecEntry<>(delimiterType, delimitedCodec, null));
+         this.bundlerInfo = BundlerInfo.createForPacket(bundlerPacket, constructor, delimiterPacket);
+         return this;
+diff --git a/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java b/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
+index da6fa7fcbdbf6abcc9c96a0cb0b9ac164d9fd3638992fb4fcf2be8954e3e8919..3c1f45e121994dd1f5d8bfdb621d3bccf8b10dd15d96994e3ff9dd649c536114 100644
+--- a/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
++++ b/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
+@@ -41,7 +41,7 @@ public interface CustomPacketPayload {
+                 final B output, final CustomPacketPayload.Type<T> type, final CustomPacketPayload payload
+             ) {
+                 output.writeIdentifier(type.id());
+-                StreamCodec<B, T> codec = this.findCodec(type.id);
++                StreamCodec<B, T> codec = (StreamCodec)this.findCodec(type.id);
+                 codec.encode(output, (T)payload);
+             }
+ 
+diff --git a/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java b/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java
+index a5128a9f4504f29128a8493143a7442c1d36567a475504154113f22292299790..7b0399f76bc48c95394d8eb659a383da991eee8b7fbe8683d260d422cfa1a8bd 100644
+--- a/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java
++++ b/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java
+@@ -15,7 +15,7 @@ public record ClientboundUpdateEnabledFeaturesPacket(Set<Identifier> features)
+     );
+ 
+     private ClientboundUpdateEnabledFeaturesPacket(final FriendlyByteBuf input) {
+-        this(input.readCollection(HashSet::new, FriendlyByteBuf::readIdentifier));
++        this(input.<Identifier, Set<Identifier>>readCollection(HashSet::new, FriendlyByteBuf::readIdentifier));
+     }
+ 
+     private void write(final FriendlyByteBuf output) {
+diff --git a/net/minecraft/network/protocol/game/ClientboundGameRuleValuesPacket.java b/net/minecraft/network/protocol/game/ClientboundGameRuleValuesPacket.java
+index d8d0d7d97fc30ca5e0c67fe022ce2fb073087963ee9638afb52babd71172d746..d90bed3eade882df8039304fec70a498eb0627bc5be6664ee6199609b6041451 100644
+--- a/net/minecraft/network/protocol/game/ClientboundGameRuleValuesPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundGameRuleValuesPacket.java
+@@ -2,6 +2,7 @@ package net.minecraft.network.protocol.game;
+ 
+ import java.util.HashMap;
+ import java.util.Map;
++import io.netty.buffer.ByteBuf;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+@@ -13,7 +14,7 @@ import net.minecraft.world.level.gamerules.GameRule;
+ 
+ public record ClientboundGameRuleValuesPacket(Map<ResourceKey<GameRule<?>>, String> values)
+     implements Packet<ClientGamePacketListener> {
+-    public static final StreamCodec<FriendlyByteBuf, ClientboundGameRuleValuesPacket> STREAM_CODEC = ByteBufCodecs.map(
++    public static final StreamCodec<FriendlyByteBuf, ClientboundGameRuleValuesPacket> STREAM_CODEC = ByteBufCodecs.<FriendlyByteBuf, ResourceKey<GameRule<?>>, String, Map<ResourceKey<GameRule<?>>, String>>map(
+             HashMap::new, ResourceKey.streamCodec(Registries.GAME_RULE), ByteBufCodecs.STRING_UTF8
+         )
+         .map(ClientboundGameRuleValuesPacket::new, ClientboundGameRuleValuesPacket::values);
+diff --git a/net/minecraft/network/syncher/EntityDataSerializer.java b/net/minecraft/network/syncher/EntityDataSerializer.java
+index fbcd93b8d70c86a885966f58296a0c86bc59a15d2988371981d00c0a84c66259..69a9eb1fae9d3a2e7a12aa8012589a2a196840101bf52cd13351feb4dbbdb83d 100644
+--- a/net/minecraft/network/syncher/EntityDataSerializer.java
++++ b/net/minecraft/network/syncher/EntityDataSerializer.java
+@@ -13,7 +13,7 @@ public interface EntityDataSerializer<T> {
+     T copy(T value);
+ 
+     static <T> EntityDataSerializer<T> forValueType(final StreamCodec<? super RegistryFriendlyByteBuf, T> codec) {
+-        return () -> {
++        return (ForValueType<T>) () -> {
+             return codec;
+         };
+     }
+diff --git a/net/minecraft/network/syncher/EntityDataSerializers.java b/net/minecraft/network/syncher/EntityDataSerializers.java
+index 500d3c94215ab1b39ab47f0e94b5d9a3a9cb9d57c266e8c683306783087df9f1..3c21069297a13fa9cf12c248a1be2c6360de0b85c7222a57d2f1e89fb7290126 100644
+--- a/net/minecraft/network/syncher/EntityDataSerializers.java
++++ b/net/minecraft/network/syncher/EntityDataSerializers.java
+@@ -115,7 +115,7 @@ public class EntityDataSerializers {
+         Direction.STREAM_CODEC
+     );
+     public static final EntityDataSerializer<Optional<EntityReference<LivingEntity>>> OPTIONAL_LIVING_ENTITY_REFERENCE = EntityDataSerializer.forValueType(
+-        EntityReference.streamCodec().apply(ByteBufCodecs::optional)
++        EntityReference.<LivingEntity>streamCodec().apply(ByteBufCodecs::optional)
+     );
+     public static final EntityDataSerializer<Optional<GlobalPos>> OPTIONAL_GLOBAL_POS = EntityDataSerializer.forValueType(
+         GlobalPos.STREAM_CODEC.apply(ByteBufCodecs::optional)
+diff --git a/net/minecraft/resources/HolderSetCodec.java b/net/minecraft/resources/HolderSetCodec.java
+index 635556af78259134a61323a202b6fab83d1be7afcd819252b3b177b3371aa283..41a8cd371c9bffc8b99465057d693043de4205fd5993a1088fa8b0da34e0affd 100644
+--- a/net/minecraft/resources/HolderSetCodec.java
++++ b/net/minecraft/resources/HolderSetCodec.java
+@@ -71,7 +71,7 @@ public class HolderSetCodec<E> implements Codec<HolderSet<E>> {
+     }
+ 
+     private static <E> DataResult<HolderSet<E>> lookupTag(final HolderGetter<E> registry, final TagKey<E> key) {
+-        return registry.get(key).map(DataResult::success).orElseGet(() -> {
++        return (DataResult)registry.get(key).map(DataResult::success).orElseGet(() -> {
+             return DataResult.error(() -> {
+                 return "Missing tag: '" + key.location() + "' in '" + key.registry().identifier() + "'";
+             });
+diff --git a/net/minecraft/resources/RegistryDataLoader.java b/net/minecraft/resources/RegistryDataLoader.java
+index 6a7e57a989e7f875f781057a22ccfa4b48d03bccdb87f1d89aad631c68607f38..8d2e5827adf1b13e1e8c695aef168debe05200d03ec5acaa75b3628966fd08be 100644
+--- a/net/minecraft/resources/RegistryDataLoader.java
++++ b/net/minecraft/resources/RegistryDataLoader.java
+@@ -80,7 +80,7 @@ import org.slf4j.Logger;
+ 
+ public class RegistryDataLoader {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private static final Comparator<ResourceKey<?>> ERROR_KEY_COMPARATOR = Comparator.comparing(ResourceKey::registry)
++    private static final Comparator<ResourceKey<?>> ERROR_KEY_COMPARATOR = Comparator.<ResourceKey<?>, Identifier>comparing(ResourceKey::registry)
+         .thenComparing(ResourceKey::identifier);
+     public static final List<RegistryDataLoader.RegistryData<?>> WORLDGEN_REGISTRIES = List.of(
+         new RegistryDataLoader.RegistryData<>(Registries.DIMENSION_TYPE, DimensionType.DIRECT_CODEC),
+diff --git a/net/minecraft/server/dedicated/Settings.java b/net/minecraft/server/dedicated/Settings.java
+index b7093d0902efef63259d7033d429e6b959878cfd7545f49dc15c6a7a98e43d4d..e0bafebf9d42cd8461f20302e46bd8785ef3a5d69dcacf2a0496a86f5ee5b48c 100644
+--- a/net/minecraft/server/dedicated/Settings.java
++++ b/net/minecraft/server/dedicated/Settings.java
+@@ -123,7 +123,7 @@ public abstract class Settings<T extends Settings<T>> {
+         String value = this.getStringRaw(key);
+         V result = MoreObjects.firstNonNull(value != null ? deserializer.apply(value) : null, defaultValue);
+         this.properties.put(key, serializer.apply(result));
+-        return new Settings.MutableValue<>(key, result, serializer);
++        return new MutableValue<>(key, result, serializer);
+     }
+ 
+     protected <V> V get(
+diff --git a/net/minecraft/server/dialog/action/StaticAction.java b/net/minecraft/server/dialog/action/StaticAction.java
+index 1ff4877724a1afa3212e809ab7ac0e05c298afbe934283cd9b3083fbbda04893..404c6caf036cc29eb75182dce8e180534103d176f362d6452947017ca57cc3e4 100644
+--- a/net/minecraft/server/dialog/action/StaticAction.java
++++ b/net/minecraft/server/dialog/action/StaticAction.java
+@@ -14,7 +14,7 @@ public record StaticAction(ClickEvent value) implements Action {
+ 
+         for (ClickEvent.Action action : ClickEvent.Action.class.getEnumConstants()) {
+             if (action.isAllowedFromServer()) {
+-                MapCodec<ClickEvent> mapCodec = action.valueCodec();
++                MapCodec<ClickEvent> mapCodec = (MapCodec<ClickEvent>)action.valueCodec();
+                 result.put(action, mapCodec.xmap(StaticAction::new, StaticAction::value));
+             }
+         }
+diff --git a/net/minecraft/server/jsonrpc/IncomingRpcMethods.java b/net/minecraft/server/jsonrpc/IncomingRpcMethods.java
+index fa9ef415e5808ea0ae411b94c0f9c55eb504dc99f2c34f0f1679582a8491185d..bacc89ffa99e1a16be61f56f5b42c0a2de2719c228393f81c864f297f459dccd 100644
+--- a/net/minecraft/server/jsonrpc/IncomingRpcMethods.java
++++ b/net/minecraft/server/jsonrpc/IncomingRpcMethods.java
+@@ -363,9 +363,9 @@ public class IncomingRpcMethods {
+             .description("Get the available game rule keys and their current values")
+             .response("gamerules", Schema.TYPED_GAME_RULE_SCHEMA.asRef().asArray())
+             .register(methodRegistry, "gamerules");
+-        IncomingRpcMethod.method(GameRulesService::update)
++        IncomingRpcMethod.<GameRulesService.GameRuleUpdate, GameRulesService.GameRuleUpdate>method((minecraftApi, update, clientInfo) -> GameRulesService.update(minecraftApi, update, clientInfo))
+             .description("Update game rule value")
+-            .param("gamerule", Schema.UNTYPED_GAME_RULE_SCHEMA.asRef())
++            .param("gamerule", (Schema)Schema.UNTYPED_GAME_RULE_SCHEMA.asRef())
+             .response("gamerule", Schema.TYPED_GAME_RULE_SCHEMA.asRef())
+             .register(methodRegistry, "gamerules/update");
+     }
+diff --git a/net/minecraft/server/jsonrpc/api/MethodInfo.java b/net/minecraft/server/jsonrpc/api/MethodInfo.java
+index 81c6b6774a88050b0222914e9f0f1ab1e286f4113d1cf48ae291363a8cc96b7a..ea78d9f4adca3da6720d758d1ef1cb218745336ed690a4cb5469a657d3d243af 100644
+--- a/net/minecraft/server/jsonrpc/api/MethodInfo.java
++++ b/net/minecraft/server/jsonrpc/api/MethodInfo.java
+@@ -36,10 +36,10 @@ public record MethodInfo<Params, Result>(
+             i -> {
+                 return i.group(
+                         Codec.STRING.fieldOf("description").forGetter(MethodInfo::description),
+-                        paramsTypedCodec().fieldOf("params").forGetter(MethodInfo::params),
++                        paramsTypedCodec().fieldOf("params").forGetter(paramsResultMethodInfo -> (Optional)paramsResultMethodInfo.params()),
+                         ResultInfo.<Result>typedCodec().optionalFieldOf("result").forGetter(MethodInfo::result)
+                     )
+-                    .apply(i, MethodInfo::new);
++                    .apply(i, (description1, params1, result1) -> new MethodInfo(description1, params1, result1));
+             }
+         );
+     }
+@@ -49,7 +49,7 @@ public record MethodInfo<Params, Result>(
+     }
+ 
+     public record Named<Params, Result>(Identifier name, MethodInfo<Params, Result> contents) {
+-        public static final Codec<MethodInfo.Named<?, ?>> CODEC = typedCodec();
++        public static final Codec<MethodInfo.Named<?, ?>> CODEC = (Codec)typedCodec();
+ 
+         public static <Params, Result> Codec<MethodInfo.Named<Params, Result>> typedCodec() {
+             return RecordCodecBuilder.create(
+diff --git a/net/minecraft/server/jsonrpc/api/Schema.java b/net/minecraft/server/jsonrpc/api/Schema.java
+index ea9cc030ca7e59d6d356be979971ef859faee3f5908858aac554a4ee65d49faa..fd5335f69a6244bbaf44062daba9cc29971f719f3deb4d29f4f25e33b2909e08 100644
+--- a/net/minecraft/server/jsonrpc/api/Schema.java
++++ b/net/minecraft/server/jsonrpc/api/Schema.java
+@@ -40,30 +40,30 @@ public record Schema<T>(
+     List<String> enumValues,
+     Codec<T> codec
+ ) {
+-    public static final Codec<? extends Schema<?>> CODEC = Codec.recursive(
++    public static final Codec<? extends Schema<?>> CODEC = Codec.<Schema<?>>recursive(
+             "Schema",
+             subCodec -> {
+                 return RecordCodecBuilder.create(
+                     i -> {
+                         return i.group(
+-                                (App<RecordCodecBuilder.Mu<? extends Schema<?>>, Optional<URI>>)ReferenceUtil.REFERENCE_CODEC
++                                ReferenceUtil.REFERENCE_CODEC
+                                     .optionalFieldOf("$ref")
+                                     .forGetter(Schema::reference),
+-                                (App<RecordCodecBuilder.Mu<? extends Schema<?>>, List<String>>)ExtraCodecs.compactListCodec(
++                                ExtraCodecs.compactListCodec(
+                                         Codec.STRING
+                                     )
+                                     .optionalFieldOf("type", List.of())
+                                     .forGetter(Schema::type),
+-                                (App<RecordCodecBuilder.Mu<? extends Schema<?>>, Optional<? extends Schema<?>>>)subCodec.optionalFieldOf(
++                                subCodec.optionalFieldOf(
+                                         "items"
+                                     )
+                                     .forGetter(Schema::items),
+-                                (App<RecordCodecBuilder.Mu<? extends Schema<?>>, Map<String, ? extends Schema<?>>>)Codec.unboundedMap(
++                                Codec.unboundedMap(
+                                         Codec.STRING, subCodec
+                                     )
+                                     .optionalFieldOf("properties", Map.of())
+                                     .forGetter(Schema::properties),
+-                                (App<RecordCodecBuilder.Mu<? extends Schema<?>>, List<String>>)Codec.STRING
++                                Codec.STRING
+                                     .listOf()
+                                     .optionalFieldOf("enum", List.of())
+                                     .forGetter(Schema::enumValues)
+diff --git a/net/minecraft/server/jsonrpc/methods/DiscoveryService.java b/net/minecraft/server/jsonrpc/methods/DiscoveryService.java
+index 77e97911cdd3e1926a73ae86ac2295ec96a22a723109cc28d0aafabf0de268a1..2d16a9ae3e15dfb8cb3fd459fe071c8b7505d0deea70f31f1564acde0f8092ba 100644
+--- a/net/minecraft/server/jsonrpc/methods/DiscoveryService.java
++++ b/net/minecraft/server/jsonrpc/methods/DiscoveryService.java
+@@ -50,9 +50,9 @@ public class DiscoveryService {
+                     return i.group(
+                             Codec.unboundedMap(Codec.STRING, Schema.CODEC)
+                                 .fieldOf("schemas")
+-                                .forGetter(DiscoveryService.DiscoverComponents::schemas)
++                                .forGetter(discoverComponents -> (Map)discoverComponents.schemas())
+                         )
+-                        .apply(i, DiscoveryService.DiscoverComponents::new);
++                        .apply(i, map -> new DiscoverComponents((Map<String, Schema<?>>)map));
+                 }
+             );
+         }
+diff --git a/net/minecraft/server/jsonrpc/methods/GameRulesService.java b/net/minecraft/server/jsonrpc/methods/GameRulesService.java
+index b05f2222b53e1b9ee727fb3da68210d5aa625c28353974819ba6f9f8ba06d1d3..ef778f50cebc7b93832ba7f9374d38020287938fa93b9359a796b1cff0108136 100644
+--- a/net/minecraft/server/jsonrpc/methods/GameRulesService.java
++++ b/net/minecraft/server/jsonrpc/methods/GameRulesService.java
+@@ -66,14 +66,14 @@ public class GameRulesService {
+             return RecordCodecBuilder.mapCodec(
+                 i -> {
+                     return i.group(
+-                            (App<RecordCodecBuilder.Mu<? extends GameRulesService.GameRuleUpdate<?>>, GameRuleType>)StringRepresentable.fromEnum(
++                            StringRepresentable.fromEnum(
+                                     GameRuleType::values
+                                 )
+                                 .fieldOf("type")
+                                 .forGetter(r -> {
+                                     return r.gameRule.gameRuleType();
+                                 }),
+-                            (App<RecordCodecBuilder.Mu<? extends GameRulesService.GameRuleUpdate<?>>, T>)gameRule.valueCodec()
++                            gameRule.valueCodec()
+                                 .fieldOf("value")
+                                 .forGetter(GameRulesService.GameRuleUpdate::value)
+                         )
+diff --git a/net/minecraft/server/level/ChunkTaskPriorityQueue.java b/net/minecraft/server/level/ChunkTaskPriorityQueue.java
+index f3cf32fc7037c9502b87b325f4b7b966b8ee6e46e7bf42f95dac40029de55f59..96e9dcb3e9fcad40bc31cddd2388ba49f55642355343570842bbf555af826b92 100644
+--- a/net/minecraft/server/level/ChunkTaskPriorityQueue.java
++++ b/net/minecraft/server/level/ChunkTaskPriorityQueue.java
+@@ -13,7 +13,7 @@ public class ChunkTaskPriorityQueue {
+             0, PRIORITY_LEVEL_COUNT
+         )
+         .mapToObj(priority -> {
+-            return new Long2ObjectLinkedOpenHashMap<>();
++            return new Long2ObjectLinkedOpenHashMap<List<Runnable>>();
+         })
+         .toList();
+     private volatile int topPriorityQueueIndex = PRIORITY_LEVEL_COUNT;
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 40c1eda4bfc9f47f004d116c15037edf39f3a94e9a2f50e74ba20f799f1a0ab8..da34a35ba8f0150a644be1a25c1c0c473e47570382368edef00e42df4b03e55d 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -1119,7 +1119,7 @@ public class ServerGamePacketListenerImpl
+             ItemStack writtenBook = carried.transmuteCopy(Items.WRITTEN_BOOK);
+             writtenBook.remove(DataComponents.WRITABLE_BOOK_CONTENT);
+             List<Filterable<Component>> pages = contents.stream().map(page -> {
+-                return this.filterableFromOutgoing(page).map(Component::literal);
++                return this.filterableFromOutgoing(page).<Component>map(Component::literal);
+             }).toList();
+             writtenBook.set(
+                 DataComponents.WRITTEN_BOOK_CONTENT,
+diff --git a/net/minecraft/server/packs/metadata/MetadataSectionType.java b/net/minecraft/server/packs/metadata/MetadataSectionType.java
+index 984145c9e5821c04f3cacf358a79aa05274ce0831a2d652badf3c8ec57027b5f..9296ec65cb9fe05aee4df073f1f40b866003b70f1bd0cef206cff09336e87ae8 100644
+--- a/net/minecraft/server/packs/metadata/MetadataSectionType.java
++++ b/net/minecraft/server/packs/metadata/MetadataSectionType.java
+@@ -10,7 +10,7 @@ public record MetadataSectionType<T>(String name, Codec<T> codec) {
+ 
+     public record WithValue<T>(MetadataSectionType<T> type, T value) {
+         public <U> Optional<U> unwrapToType(final MetadataSectionType<U> type) {
+-            return type == this.type ? Optional.of(this.value) : Optional.empty();
++            return type == this.type ? Optional.of((U)this.value) : Optional.empty();
+         }
+     }
+ }
+diff --git a/net/minecraft/util/AbstractListBuilder.java b/net/minecraft/util/AbstractListBuilder.java
+index 19395980a452fb892cd6d97a879c18d5a0789eaa0d581438e5a9a1eb5cf3ce6d..218e49e945d848867306d8a52d83e7e1896a86e10f4789b22896c02ef2aed869 100644
+--- a/net/minecraft/util/AbstractListBuilder.java
++++ b/net/minecraft/util/AbstractListBuilder.java
+@@ -28,7 +28,7 @@ public abstract class AbstractListBuilder<T, B> implements ListBuilder<T> {
+     @Override
+     public ListBuilder<T> add(final T value) {
+         this.builder = this.builder.map(b -> {
+-            return (T)this.append((B)b, value);
++            return this.append(b, value);
+         });
+         return this;
+     }
+diff --git a/net/minecraft/util/CubicSpline.java b/net/minecraft/util/CubicSpline.java
+index 3398a3066112aab4fba0d041ff3394fc51061c6ab678ab3b1425dd347e980343..5a4c6c6dbc6aa93956e22c2b721f53f0cbb694a1c1c29918d1830f7b03dbdb05 100644
+--- a/net/minecraft/util/CubicSpline.java
++++ b/net/minecraft/util/CubicSpline.java
+@@ -67,15 +67,15 @@ public sealed interface CubicSpline<I> permits CubicSpline.Multipoint, CubicSpli
+                         e -> {
+                             return e.map(
+                                 CubicSpline.Constant::new,
+-                                (Function<? super CubicSpline.Multipoint<I>, ? extends CubicSpline.Constant<I>>)(m -> {
++                                (m -> {
+                                     return m;
+                                 })
+                             );
+                         },
+                         spline -> {
+                             return switch (spline) {
+-                                case CubicSpline.Constant(float value) -> Either.left(value);
+-                                case CubicSpline.Multipoint<I> multipoint -> Either.right(multipoint);
++                                case CubicSpline.Constant(float value) -> Either.<Float, Multipoint<I>>left(value);
++                                case CubicSpline.Multipoint<I> multipoint -> Either.<Float, Multipoint<I>>right(multipoint);
+                                 default -> throw new MatchException(null, null);
+                             };
+                         }
+diff --git a/net/minecraft/util/EncoderCache.java b/net/minecraft/util/EncoderCache.java
+index 2d20146c0ae8faae1e4d41055049b180b698a9585d5534932cd817a3a8f0b4ca..4499310efbc5fee6e4ea8346ababa5f974aa5dccccee4dd607db7c67c8659bae 100644
+--- a/net/minecraft/util/EncoderCache.java
++++ b/net/minecraft/util/EncoderCache.java
+@@ -33,7 +33,7 @@ public class EncoderCache {
+ 
+             @Override
+             public <T> DataResult<T> encode(final A input, final DynamicOps<T> ops, final T prefix) {
+-                return EncoderCache.this.cache.getUnchecked(new EncoderCache.Key<>(codec, input, ops)).map(value -> {
++                return (DataResult<T>)EncoderCache.this.cache.getUnchecked(new EncoderCache.Key<>(codec, input, ops)).map(value -> {
+                     return value instanceof Tag tag ? tag.copy() : value;
+                 });
+             }
+diff --git a/net/minecraft/util/ExtraCodecs.java b/net/minecraft/util/ExtraCodecs.java
+index 99acf90701602559b1f246adaa8d3b73764c72560b9f8a4ca991ff1d6f6a9383..a7097961e1f7d7a3fd53ce6f769f206208faf78f250028347773e8b6b6aa90e4 100644
+--- a/net/minecraft/util/ExtraCodecs.java
++++ b/net/minecraft/util/ExtraCodecs.java
+@@ -370,7 +370,7 @@ public class ExtraCodecs {
+         }, p -> {
+             return ImmutableList.of(getMin.apply((I)p), getMax.apply((I)p));
+         });
+-        Codec<I> objectCodec = RecordCodecBuilder.<Pair>create(
++        Codec<I> objectCodec = RecordCodecBuilder.<Pair<P, P>>create(
+                 i -> {
+                     return i.group(
+                             pointCodec.fieldOf(lowerBoundName).forGetter(Pair::getFirst),
+@@ -793,7 +793,7 @@ public class ExtraCodecs {
+             public <T> RecordBuilder<T> encode(final V input, final DynamicOps<T> ops, final RecordBuilder<T> builder) {
+                 K type = (K)typeGetter.apply(input);
+                 builder.add(typeKey, typeCodec.encodeStart(ops, type));
+-                DataResult<T> parameters = this.encode(valueCodec.apply(type), input, ops);
++                DataResult<T> parameters = this.encode((Codec)valueCodec.apply(type), input, ops);
+                 if (parameters.result().isEmpty() || !Objects.equals(parameters.result().get(), ops.emptyMap())) {
+                     builder.add(valueKey, parameters);
+                 }
+diff --git a/net/minecraft/util/HashOps.java b/net/minecraft/util/HashOps.java
+index 775cab64f718c7c3d6fa2a07d75b44f40852b78d097c59a519b7f1622bcb84f2..4535412f242ed3506c7a6b28d404d9cfa79902549e72f8218c0231dadb11d1ca 100644
+--- a/net/minecraft/util/HashOps.java
++++ b/net/minecraft/util/HashOps.java
+@@ -56,7 +56,7 @@ public class HashOps implements DynamicOps<HashCode> {
+             HASH_COMPARATOR
+         )
+         .thenComparing(Entry.comparingByValue(HASH_COMPARATOR));
+-    private static final Comparator<Pair<HashCode, HashCode>> MAPLIKE_ENTRY_ORDER = Comparator.comparing(
++    private static final Comparator<Pair<HashCode, HashCode>> MAPLIKE_ENTRY_ORDER = Comparator.<Pair<HashCode, HashCode>, HashCode>comparing(
+             Pair::getFirst, HASH_COMPARATOR
+         )
+         .thenComparing(Pair::getSecond, HASH_COMPARATOR);
+diff --git a/net/minecraft/util/PlaceholderLookupProvider.java b/net/minecraft/util/PlaceholderLookupProvider.java
+index dd01bab3619779accf87af7e0dad21b337076df9023ecc1b28fbc9fe76b61427..3493a397cbd3021f00388757e4562b0f777307705e5ff80f855040b9d402a85e 100644
+--- a/net/minecraft/util/PlaceholderLookupProvider.java
++++ b/net/minecraft/util/PlaceholderLookupProvider.java
+@@ -112,11 +112,11 @@ public class PlaceholderLookupProvider implements HolderGetter.Provider {
+         }
+ 
+         public <T> HolderGetter<T> castAsLookup() {
+-            return this;
++            return (HolderGetter<T>)this;
+         }
+ 
+         public <T> HolderOwner<T> castAsOwner() {
+-            return this;
++            return (HolderOwner<T>)this;
+         }
+     }
+ }
+diff --git a/net/minecraft/util/SortedArraySet.java b/net/minecraft/util/SortedArraySet.java
+index 42fd78084fd40f0a19f420eb944a859e24b4c095f31a33b7715f2c139a48c4e0..bf3db29f00885d38b0389b7043da3b9282d0f4ed3226f81bd15e51e698136b5e 100644
+--- a/net/minecraft/util/SortedArraySet.java
++++ b/net/minecraft/util/SortedArraySet.java
+@@ -28,7 +28,7 @@ public class SortedArraySet<T> extends AbstractSet<T> {
+     }
+ 
+     public static <T extends Comparable<T>> SortedArraySet<T> create(final int initialCapacity) {
+-        return new SortedArraySet<>(initialCapacity, Comparator.naturalOrder());
++        return new SortedArraySet<>(initialCapacity, Comparator.<T>naturalOrder());
+     }
+ 
+     public static <T> SortedArraySet<T> create(final Comparator<T> comparator) {
+diff --git a/net/minecraft/util/Util.java b/net/minecraft/util/Util.java
+index 7c07946292137b77983efe0f62eccadc9a0e9a23b399bbee8c15070e4a6140ea..d38e82a5cd644cb17d5060bff5b756366336a9a65ba382fa27a5d10b53ab1dbc 100644
+--- a/net/minecraft/util/Util.java
++++ b/net/minecraft/util/Util.java
+@@ -691,7 +691,7 @@ public class Util {
+     public static <K extends Enum<K>, V> Map<K, V> makeEnumMap(final Class<K> keyType, final Function<K, V> function) {
+         EnumMap<K, V> map = new EnumMap<>(keyType);
+ 
+-        for (K key : (Enum[])keyType.getEnumConstants()) {
++        for (K key : keyType.getEnumConstants()) {
+             map.put(key, function.apply(key));
+         }
+ 
+diff --git a/net/minecraft/util/datafix/DataFixers.java b/net/minecraft/util/datafix/DataFixers.java
+index af0e16945840c62972fa5e7fd53fd8bff15eb88efbd262ade95b00d3f1541741..722b57632fd338c5da6a64d3c04364d3bffcdc30a050d5e6f178e690a7cc01bd 100644
+--- a/net/minecraft/util/datafix/DataFixers.java
++++ b/net/minecraft/util/datafix/DataFixers.java
+@@ -1373,7 +1373,7 @@ public class DataFixers {
+                 References.ENTITY,
+                 "minecraft:cat",
+                 "CatType",
+-                Util.make(new Int2ObjectOpenHashMap(), m -> {
++                Util.make(new Int2ObjectOpenHashMap<String>(), m -> {
+                     m.defaultReturnValue("minecraft:tabby");
+                     m.put(0, "minecraft:tabby");
+                     m.put(1, "minecraft:black");
+@@ -1417,7 +1417,7 @@ public class DataFixers {
+                 References.ENTITY,
+                 "minecraft:frog",
+                 "Variant",
+-                Util.make(new Int2ObjectOpenHashMap(), m -> {
++                Util.make(new Int2ObjectOpenHashMap<String>(), m -> {
+                     m.put(0, "minecraft:temperate");
+                     m.put(1, "minecraft:warm");
+                     m.put(2, "minecraft:cold");
+diff --git a/net/minecraft/util/datafix/fixes/BlockEntityUUIDFix.java b/net/minecraft/util/datafix/fixes/BlockEntityUUIDFix.java
+index fdb444604d627d74d530acde3fe8d86e8441b0a6ccd8ec2ade75135336aa6df0..5cafc59a683e4e8e24fa8e80d063b4dd4567650dd9196d3b806f32af3b969201 100644
+--- a/net/minecraft/util/datafix/fixes/BlockEntityUUIDFix.java
++++ b/net/minecraft/util/datafix/fixes/BlockEntityUUIDFix.java
+@@ -22,7 +22,7 @@ public class BlockEntityUUIDFix extends AbstractUUIDFix {
+     private Dynamic<?> updateSkull(final Dynamic<?> tag) {
+         return tag.get("Owner").get().map(ownerTag -> {
+             return replaceUUIDString((Dynamic<?>)ownerTag, "Id", "Id").orElse((Dynamic<?>)ownerTag);
+-        }).map(ownerTag -> {
++        }).<Dynamic<?>>map(ownerTag -> {
+             return tag.remove("Owner").set("SkullOwner", (Dynamic<?>)ownerTag);
+         }).result().orElse(tag);
+     }
+diff --git a/net/minecraft/util/datafix/fixes/ChunkBedBlockEntityInjecterFix.java b/net/minecraft/util/datafix/fixes/ChunkBedBlockEntityInjecterFix.java
+index 65d77f66d3cc0f1738113df6eeaec03b78fbebe108ba67ed10c642c5eb8bd4ca..09a3b38fae00998fc22898eedac027470f73ccd3d2559543ab663252ec9eb2b5 100644
+--- a/net/minecraft/util/datafix/fixes/ChunkBedBlockEntityInjecterFix.java
++++ b/net/minecraft/util/datafix/fixes/ChunkBedBlockEntityInjecterFix.java
+@@ -39,8 +39,8 @@ public class ChunkBedBlockEntityInjecterFix extends DataFix {
+         return TypeRewriteRule.seq(
+             this.fixTypeEverywhere(
+                 "InjectBedBlockEntityType",
+-                this.getInputSchema().findChoiceType(References.BLOCK_ENTITY),
+-                this.getOutputSchema().findChoiceType(References.BLOCK_ENTITY),
++                (com.mojang.datafixers.types.templates.TaggedChoice.TaggedChoiceType<String>)this.getInputSchema().findChoiceType(References.BLOCK_ENTITY),
++                (com.mojang.datafixers.types.templates.TaggedChoice.TaggedChoiceType<String>)this.getOutputSchema().findChoiceType(References.BLOCK_ENTITY),
+                 ops -> {
+                     return v -> {
+                         return v;
+diff --git a/net/minecraft/util/datafix/fixes/ChunkProtoTickListFix.java b/net/minecraft/util/datafix/fixes/ChunkProtoTickListFix.java
+index a4dadc3153f31f1078b819ea0d617dda8bdfbc0e0e4e10019d1de5adca444c3b..6a5a1cad6adfdc327589d8e94ba7e30243918f9626d1d82e85805db6b14f8c02 100644
+--- a/net/minecraft/util/datafix/fixes/ChunkProtoTickListFix.java
++++ b/net/minecraft/util/datafix/fixes/ChunkProtoTickListFix.java
+@@ -119,7 +119,7 @@ public class ChunkProtoTickListFix extends DataFix {
+                                 }
+                             );
+                         byte sectionMinY = lowestY.byteValue();
+-                        Typed var18 = level.update(DSL.remainderFinder(), remainder -> {
++                        Typed<?> var18 = level.update(DSL.remainderFinder(), remainder -> {
+                             return remainder.update("yPos", y -> {
+                                 return y.createByte(sectionMinY);
+                             });
+@@ -242,7 +242,7 @@ public class ChunkProtoTickListFix extends DataFix {
+         int relativeZ = pos >>> 8 & 15;
+         String type = typeGetter.apply(container != null ? container.get().get(relativeX, relativeY, relativeZ) : null);
+         return tag.createMap(
+-            ImmutableMap.builder()
++            ImmutableMap.<Dynamic<?>,Dynamic<?>>builder()
+                 .put(tag.createString("i"), tag.createString(type))
+                 .put(tag.createString("x"), tag.createInt(sectionX * 16 + relativeX))
+                 .put(tag.createString("y"), tag.createInt(sectionY * 16 + relativeY))
+diff --git a/net/minecraft/util/datafix/fixes/EntitySpawnerItemVariantComponentFix.java b/net/minecraft/util/datafix/fixes/EntitySpawnerItemVariantComponentFix.java
+index 713948d03a56cbe9d9cb8c37b90024413f724606a3b0c6e24494196ffa6fdac3..03b30155a6bc33bf4aa50f349f94123c1593d950bfec3f6c363498cb9d88a56e 100644
+--- a/net/minecraft/util/datafix/fixes/EntitySpawnerItemVariantComponentFix.java
++++ b/net/minecraft/util/datafix/fixes/EntitySpawnerItemVariantComponentFix.java
+@@ -35,13 +35,13 @@ public class EntitySpawnerItemVariantComponentFix extends DataFix {
+ 
+                 return switch (id) {
+                     case "minecraft:salmon_bucket" -> input.updateTyped(
+-                        componentsFinder, EntitySpawnerItemVariantComponentFix::fixSalmonBucket
++                        componentsFinder, (Fixer)EntitySpawnerItemVariantComponentFix::fixSalmonBucket
+                     );
+                     case "minecraft:axolotl_bucket" -> input.updateTyped(
+-                        componentsFinder, EntitySpawnerItemVariantComponentFix::fixAxolotlBucket
++                        componentsFinder, (Fixer)EntitySpawnerItemVariantComponentFix::fixAxolotlBucket
+                     );
+                     case "minecraft:tropical_fish_bucket" -> input.updateTyped(
+-                        componentsFinder, EntitySpawnerItemVariantComponentFix::fixTropicalFishBucket
++                        componentsFinder, (Fixer)EntitySpawnerItemVariantComponentFix::fixTropicalFishBucket
+                     );
+                     case "minecraft:painting" -> input.updateTyped(
+                         componentsFinder,
+diff --git a/net/minecraft/util/datafix/fixes/FixWolfHealth.java b/net/minecraft/util/datafix/fixes/FixWolfHealth.java
+index 2fc0d1c2f7800e3add187c90bd1b9e36f519072d5690ab0fb87c438eeef8da71..49e0abd2f576d86a503cf693a14c10286ce60f76038d108419f779a316af2bb8 100644
+--- a/net/minecraft/util/datafix/fixes/FixWolfHealth.java
++++ b/net/minecraft/util/datafix/fixes/FixWolfHealth.java
+@@ -21,7 +21,7 @@ public class FixWolfHealth extends NamedEntityFix {
+             DSL.remainderFinder(),
+             dynamic -> {
+                 MutableBoolean healthAdjusted = new MutableBoolean(false);
+-                Dynamic var2 = dynamic.update(
++                Dynamic<?> var2 = dynamic.update(
+                     "Attributes",
+                     attributes -> {
+                         return attributes.createList(
+diff --git a/net/minecraft/util/datafix/fixes/InlineBlockPosFormatFix.java b/net/minecraft/util/datafix/fixes/InlineBlockPosFormatFix.java
+index b0cacb08de8f53ce6685cd88784859c94351e069eaac66c945dae9aa42caddf3..23d0b2920369d57c3007bf09302a8c128fd29405a2cb85ff8026b6e971e0c1c5 100644
+--- a/net/minecraft/util/datafix/fixes/InlineBlockPosFormatFix.java
++++ b/net/minecraft/util/datafix/fixes/InlineBlockPosFormatFix.java
+@@ -37,7 +37,7 @@ public class InlineBlockPosFormatFix extends DataFix {
+             ),
+             this.fixTypeEverywhereTyped(
+                 "InlineBlockPosFormatFix - entity", this.getInputSchema().getType(References.ENTITY), entity -> {
+-                    Typed var8 = entity.update(DSL.remainderFinder(), this::fixLivingEntity)
++                    Typed<?> var8 = entity.update(DSL.remainderFinder(), this::fixLivingEntity)
+                         .updateTyped(vexFinder, vex -> {
+                             return vex.update(DSL.remainderFinder(), this::fixVex);
+                         })
+diff --git a/net/minecraft/util/datafix/fixes/LeavesFix.java b/net/minecraft/util/datafix/fixes/LeavesFix.java
+index 7eea17896f774938d1afcb953b84981e726baf04d9ed9f03efd3c25a1c7b064a..5a87570e2ae19870301234d802a1d0b9a134fe4a331e09c722518e9ddc0dfdee 100644
+--- a/net/minecraft/util/datafix/fixes/LeavesFix.java
++++ b/net/minecraft/util/datafix/fixes/LeavesFix.java
+@@ -377,7 +377,7 @@ public class LeavesFix extends DataFix {
+         public Typed<?> write(final Typed<?> section) {
+             return this.isSkippable() ? section : section.update(DSL.remainderFinder(), tag -> {
+                 return tag.set("BlockStates", tag.createLongList(Arrays.stream(this.storage.getRaw())));
+-            }).set(this.paletteFinder, this.palette.stream().map(b -> {
++            }).set(this.paletteFinder, this.palette.stream().<Pair<String, Dynamic<?>>>map(b -> {
+                 return Pair.of(References.BLOCK_STATE.typeName(), b);
+             }).collect(Collectors.toList()));
+         }
+diff --git a/net/minecraft/util/datafix/fixes/OptionsKeyLwjgl3Fix.java b/net/minecraft/util/datafix/fixes/OptionsKeyLwjgl3Fix.java
+index 20fac119bd768d49dddac7b57576163688fa5568d33d935d21ee9fb231409187..c97df6e4aa35e4ea784bceacc4e091406c372e00f21d737fe63cd4cf0916ed93 100644
+--- a/net/minecraft/util/datafix/fixes/OptionsKeyLwjgl3Fix.java
++++ b/net/minecraft/util/datafix/fixes/OptionsKeyLwjgl3Fix.java
+@@ -162,7 +162,7 @@ public class OptionsKeyLwjgl3Fix extends DataFix {
+                                 return Pair.of(entry.getKey(), entry.getValue());
+                             }
+                         }).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond)));
+-                    }).result().orElse(tag);
++                    }).result().orElse((com.mojang.serialization.Dynamic)tag);
+                 });
+             }
+         );
+diff --git a/net/minecraft/util/datafix/fixes/OptionsKeyTranslationFix.java b/net/minecraft/util/datafix/fixes/OptionsKeyTranslationFix.java
+index 3b0c4517b5808e3bf8bdd9cda2138c3d8540f0a1bd8eca44ca8ffaa2f44ee7d6..aa27a085552d7b4fc663b8ce51fcdce030f527248f63749f3b7bf6948db3b964 100644
+--- a/net/minecraft/util/datafix/fixes/OptionsKeyTranslationFix.java
++++ b/net/minecraft/util/datafix/fixes/OptionsKeyTranslationFix.java
+@@ -51,7 +51,7 @@ public class OptionsKeyTranslationFix extends DataFix {
+                                 }
+                             )
+                             .result()
+-                            .orElse(tag);
++                            .orElse((com.mojang.serialization.Dynamic)tag);
+                     }
+                 );
+             }
+diff --git a/net/minecraft/util/filefix/FileFixerUpper.java b/net/minecraft/util/filefix/FileFixerUpper.java
+index 5b08420c9e24485faac37906b2bb3faf88c2c9f724ad259f1f34ca8a6c8d3dda..4e53bb54722f3fd8c599b231258532f96c9433795bc8418e07a80378f9f5377a 100644
+--- a/net/minecraft/util/filefix/FileFixerUpper.java
++++ b/net/minecraft/util/filefix/FileFixerUpper.java
+@@ -376,15 +376,15 @@ public class FileFixerUpper {
+                         Files.move(worldFolder, oldWorldFolder, moveOptions);
+                     } catch (Exception e) {
+                         LOGGER.warn(
+-                            "Failed to move outdated world folder out of the way; will try to delete instead: ", ex
++                            "Failed to move outdated world folder out of the way; will try to delete instead: ", e
+                         );
+ 
+                         try {
+                             deleteDirectory(worldFolder);
+                         } catch (Exception e2) {
+-                            LOGGER.warn("Failed to delete outdated world folder: ", ex);
++                            LOGGER.warn("Failed to delete outdated world folder: ", e2);
+                             throw new FailedCleanupFileFixException(
+-                                ex, tempWorldTopLevel.getFileName().toString(), fileSystemCapabilities
++                                e2, tempWorldTopLevel.getFileName().toString(), fileSystemCapabilities
+                             );
+                         }
+                     }
+@@ -394,9 +394,9 @@ public class FileFixerUpper {
+                     try {
+                         Files.move(tempWorldTopLevel, worldFolder, moveOptions);
+                     } catch (Exception e) {
+-                        LOGGER.warn("Failed to move in new world folder: ", exx);
++                        LOGGER.warn("Failed to move in new world folder: ", e);
+                         throw new FailedCleanupFileFixException(
+-                            exx, tempWorldTopLevel.getFileName().toString(), fileSystemCapabilities
++                            e, tempWorldTopLevel.getFileName().toString(), fileSystemCapabilities
+                         );
+                     }
+ 
+diff --git a/net/minecraft/world/attribute/EnvironmentAttributeMap.java b/net/minecraft/world/attribute/EnvironmentAttributeMap.java
+index 2a0d3bfc52a8fe33cd81432beac7f308f2dbd8edb44651b8847b97eaa23b4732..f580753dcb888c09aaa3bebf93d0e132d2a2c26661eff12e8f4d6608ce09bf2e 100644
+--- a/net/minecraft/world/attribute/EnvironmentAttributeMap.java
++++ b/net/minecraft/world/attribute/EnvironmentAttributeMap.java
+@@ -21,8 +21,8 @@ public final class EnvironmentAttributeMap {
+             return Codec.dispatchedMap(
+                     EnvironmentAttributes.CODEC, Util.memoize(EnvironmentAttributeMap.Entry::createCodec)
+                 )
+-                .xmap(EnvironmentAttributeMap::new, v -> {
+-                    return v.entries;
++                .xmap(entries1 -> new EnvironmentAttributeMap((Map)entries1), v -> {
++                    return (Map)v.entries;
+                 });
+         }
+     );
+diff --git a/net/minecraft/world/attribute/modifier/AttributeModifier.java b/net/minecraft/world/attribute/modifier/AttributeModifier.java
+index 43838b1fbc14c6ca29e95e0c37c4178171ee82dfc2d50396af8b544454984378..40a9d17e359bff3d80cc54cfff4dc497f07636ff44c0a2e21832aea6c3303854 100644
+--- a/net/minecraft/world/attribute/modifier/AttributeModifier.java
++++ b/net/minecraft/world/attribute/modifier/AttributeModifier.java
+@@ -73,7 +73,7 @@ public interface AttributeModifier<Subject, Argument> {
+     );
+ 
+     static <Value> AttributeModifier<Value, Value> override() {
+-        return AttributeModifier.OverrideModifier.INSTANCE;
++        return (AttributeModifier<Value, Value>)OverrideModifier.INSTANCE;
+     }
+ 
+     Subject apply(Subject subject, Argument argument);
+diff --git a/net/minecraft/world/attribute/modifier/ColorModifier.java b/net/minecraft/world/attribute/modifier/ColorModifier.java
+index d40fde16c8b2d773329350e55ede781518ccaf23138835ba3dbfa6daa406f2a2..ca8fd9e5f7ede2c1ec22c6b178032fa06efd751d1182012067612529fb964bd3 100644
+--- a/net/minecraft/world/attribute/modifier/ColorModifier.java
++++ b/net/minecraft/world/attribute/modifier/ColorModifier.java
+@@ -25,10 +25,10 @@ public interface ColorModifier<Argument> extends AttributeModifier<Integer, Argu
+             return LerpFunction.ofColor();
+         }
+     };
+-    ColorModifier<Integer> ADD = ARGB::addRgb;
+-    ColorModifier<Integer> SUBTRACT = ARGB::subtractRgb;
+-    ColorModifier<Integer> MULTIPLY_RGB = ARGB::multiply;
+-    ColorModifier<Integer> MULTIPLY_ARGB = ARGB::multiply;
++    ColorModifier<Integer> ADD = (ColorModifier.RgbModifier)ARGB::addRgb;
++    ColorModifier<Integer> SUBTRACT = (ColorModifier.RgbModifier)ARGB::subtractRgb;
++    ColorModifier<Integer> MULTIPLY_RGB = (ColorModifier.RgbModifier)ARGB::multiply;
++    ColorModifier<Integer> MULTIPLY_ARGB = (ColorModifier.ArgbModifier)ARGB::multiply;
+     ColorModifier<ColorModifier.BlendToGray> BLEND_TO_GRAY = new ColorModifier<ColorModifier.BlendToGray>() {
+         public Integer apply(final Integer subject, final ColorModifier.BlendToGray argument) {
+             int multipliedGreyscale = ARGB.scaleRGB(ARGB.greyscale(subject), argument.brightness);
+diff --git a/net/minecraft/world/attribute/modifier/FloatModifier.java b/net/minecraft/world/attribute/modifier/FloatModifier.java
+index d46cc68637db4db086fd490d1608eae1baaee9c11153ccaba26d31a13ec0dbaf..56ad2f5c4a69877bea2ea7a59d756d5fdac879ea57669c01d3e1834328fec381 100644
+--- a/net/minecraft/world/attribute/modifier/FloatModifier.java
++++ b/net/minecraft/world/attribute/modifier/FloatModifier.java
+@@ -25,15 +25,15 @@ public interface FloatModifier<Argument> extends AttributeModifier<Float, Argume
+             };
+         }
+     };
+-    FloatModifier<Float> ADD = Float::sum;
++    FloatModifier<Float> ADD = (FloatModifier.Simple)Float::sum;
+     FloatModifier<Float> SUBTRACT = (FloatModifier.Simple)(a, b) -> {
+         return a - b;
+     };
+     FloatModifier<Float> MULTIPLY = (FloatModifier.Simple)(a, b) -> {
+         return a * b;
+     };
+-    FloatModifier<Float> MINIMUM = Math::min;
+-    FloatModifier<Float> MAXIMUM = Math::max;
++    FloatModifier<Float> MINIMUM = (FloatModifier.Simple)Math::min;
++    FloatModifier<Float> MAXIMUM = (FloatModifier.Simple)Math::max;
+ 
+     @FunctionalInterface
+     interface Simple extends FloatModifier<Float> {
+diff --git a/net/minecraft/world/attribute/modifier/IntegerModifier.java b/net/minecraft/world/attribute/modifier/IntegerModifier.java
+index 9d0aa858d7503ce2bf2220bdbe70ff55adc0519f114887e848b9ffae0577ac1b..ca7f2e606999cab3838105d65579f17dc5de4fd3a38d0950e4b315acbaecd61b 100644
+--- a/net/minecraft/world/attribute/modifier/IntegerModifier.java
++++ b/net/minecraft/world/attribute/modifier/IntegerModifier.java
+@@ -5,15 +5,15 @@ import net.minecraft.world.attribute.EnvironmentAttribute;
+ import net.minecraft.world.attribute.LerpFunction;
+ 
+ public interface IntegerModifier<Argument> extends AttributeModifier<Integer, Argument> {
+-    IntegerModifier<Integer> ADD = Integer::sum;
+-    IntegerModifier<Integer> SUBTRACT = (a, b) -> {
++    IntegerModifier<Integer> ADD = (IntegerModifier.Simple)Integer::sum;
++    IntegerModifier<Integer> SUBTRACT = (IntegerModifier.Simple)(a, b) -> {
+         return a - b;
+     };
+-    IntegerModifier<Integer> MULTIPLY = (a, b) -> {
++    IntegerModifier<Integer> MULTIPLY = (IntegerModifier.Simple)(a, b) -> {
+         return a * b;
+     };
+-    IntegerModifier<Integer> MINIMUM = Math::min;
+-    IntegerModifier<Integer> MAXIMUM = Math::max;
++    IntegerModifier<Integer> MINIMUM = (IntegerModifier.Simple)Math::min;
++    IntegerModifier<Integer> MAXIMUM = (IntegerModifier.Simple)Math::max;
+ 
+     Integer apply(Integer integer, Argument argument);
+ 
+diff --git a/net/minecraft/world/entity/EntityReference.java b/net/minecraft/world/entity/EntityReference.java
+index 7409777a3b7b3fa597264c6cd11dc790fb2611bac20e0969d4eaa5a7979ba921..5cbd11653deddbbc78e291179fbb80775e98af1cbed0b733d1649f98309516a6 100644
+--- a/net/minecraft/world/entity/EntityReference.java
++++ b/net/minecraft/world/entity/EntityReference.java
+@@ -131,7 +131,7 @@ public final class EntityReference<StoredEntityType extends UniquelyIdentifyable
+     public static <StoredEntityType extends UniquelyIdentifyable> @Nullable EntityReference<StoredEntityType> read(
+         final ValueInput input, final String key
+     ) {
+-        return input.read(key, codec()).orElse(null);
++        return input.read(key, EntityReference.<StoredEntityType>codec()).orElse(null);
+     }
+ 
+     public static <StoredEntityType extends UniquelyIdentifyable> @Nullable EntityReference<StoredEntityType> readWithOldOwnerConversion(
+@@ -140,7 +140,7 @@ public final class EntityReference<StoredEntityType extends UniquelyIdentifyable
+         Optional<UUID> uuid = input.read(key, UUIDUtil.CODEC);
+         return uuid.isPresent() ? of(uuid.get()) : input.getString(key).map(oldName -> {
+             return OldUsersConverter.convertMobOwnerIfNecessary(level.getServer(), oldName);
+-        }).map(EntityReference::new).orElse(null);
++        }).map(EntityReference<StoredEntityType>::new).orElse(null);
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/SpawnPlacements.java b/net/minecraft/world/entity/SpawnPlacements.java
+index f848776ad7d5fe069a20a68475dc9a395aa214599746ca06ebc67f8d16225f48..c8224b682dedfac3e1547dcf63f321ec9910e9bcad206dd10e493ae74da9bc99 100644
+--- a/net/minecraft/world/entity/SpawnPlacements.java
++++ b/net/minecraft/world/entity/SpawnPlacements.java
+@@ -92,7 +92,7 @@ public class SpawnPlacements {
+         }
+ 
+         SpawnPlacements.Data data = DATA_BY_TYPE.get(type);
+-        return data == null || data.predicate.test(type, level, spawnReason, pos, random);
++        return data == null || data.predicate.test((EntityType)type, level, spawnReason, pos, random);
+     }
+ 
+     static {
+diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
+index cad0c9c749ce876856c902704387626ef2d572d48a00b67c7ef0e5deb80dac44..cc780a28f8049f28e914593432128168ea002edca82c32eccbc9525579782472 100644
+--- a/net/minecraft/world/entity/ai/Brain.java
++++ b/net/minecraft/world/entity/ai/Brain.java
+@@ -245,7 +245,7 @@ public class Brain<E extends LivingEntity> {
+     private static <U> void callVisitor(
+         final Brain.Visitor visitor, final MemoryModuleType<U> memoryModuleType, final MemorySlot<?> slot
+     ) {
+-        slot.visit(memoryModuleType, visitor);
++        slot.visit((MemoryModuleType)memoryModuleType, visitor);
+     }
+ 
+     public <U> boolean isMemoryValue(final MemoryModuleType<U> memoryType, final U value) {
+diff --git a/net/minecraft/world/entity/ai/behavior/InteractWith.java b/net/minecraft/world/entity/ai/behavior/InteractWith.java
+index 96e38fd148cbdf682ecc5cee5d4f35ba3b3dc6f9e548525b92d836886aa47a32..c206ef76172efe1c55e0c6bda7d6a4794342c4a0f9f8d26877e318cf346b1538 100644
+--- a/net/minecraft/world/entity/ai/behavior/InteractWith.java
++++ b/net/minecraft/world/entity/ai/behavior/InteractWith.java
+@@ -57,7 +57,7 @@ public class InteractWith {
+                                     });
+                                     closest.ifPresent(
+                                         mob -> {
+-                                            target.set(mob);
++                                            target.set((T)mob);
+                                             lookTarget.set(new EntityTracker(mob, true));
+                                             walkTarget.set(
+                                                 new WalkTarget(
+diff --git a/net/minecraft/world/entity/animal/allay/Allay.java b/net/minecraft/world/entity/animal/allay/Allay.java
+index 4ca0635ba514a0c7bfd80917ac2d8d6ab785126dd6797a42a6d2d11f7b8ccc89..2d03a1b9f338e8467fde061447ceeb8c1c64397514c7dcce73ca3e56b82ae15c 100644
+--- a/net/minecraft/world/entity/animal/allay/Allay.java
++++ b/net/minecraft/world/entity/animal/allay/Allay.java
+@@ -136,7 +136,7 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
+ 
+     @Override
+     public Brain<Allay> getBrain() {
+-        return super.getBrain();
++        return (Brain<Allay>)super.getBrain();
+     }
+ 
+     public static AttributeSupplier.Builder createAttributes() {
+diff --git a/net/minecraft/world/entity/animal/allay/AllayAi.java b/net/minecraft/world/entity/animal/allay/AllayAi.java
+index 253a348c28aa2d2e9d0042a340b2ad33f4df038d67369101a77e11914a911582..e5d75469abe124d7cf924f1090d14c09b23cc1ff6b62a0e52d22074b96bb8099 100644
+--- a/net/minecraft/world/entity/animal/allay/AllayAi.java
++++ b/net/minecraft/world/entity/animal/allay/AllayAi.java
+@@ -64,7 +64,7 @@ public class AllayAi {
+             0,
+             ImmutableList.of(
+                 new Swim<>(0.8F),
+-                new AnimalPanic(2.5F),
++                new AnimalPanic<>(2.5F),
+                 new LookAtTargetSink(45, 90),
+                 new MoveToTargetSink(),
+                 new CountDownCooldownTicks(MemoryModuleType.LIKED_NOTEBLOCK_COOLDOWN_TICKS),
+@@ -86,7 +86,7 @@ public class AllayAi {
+                     AllayAi::getItemDepositPosition, Predicate.not(AllayAi::hasWantedItem), 4, 16, 2.25F
+                 ),
+                 SetEntityLookTargetSometimes.create(6.0F, UniformInt.of(30, 60)),
+-                new RunOne(
++                new RunOne<>(
+                     ImmutableList.of(
+                         Pair.of(RandomStroll.fly(1.0F), 2),
+                         Pair.of(SetWalkTargetFromLookTarget.create(1.0F, 3), 2),
+diff --git a/net/minecraft/world/entity/animal/armadillo/Armadillo.java b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
+index fd5289d4d537ebd32cee02bd583333256265c830e63342896f70b2b857f5d5d0..c9eac893ed9a260666d71d833a8c285d93dc2887dc2405014d8fb74f3bb33cec 100644
+--- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
++++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
+@@ -144,7 +144,7 @@ public class Armadillo extends Animal {
+ 
+     @Override
+     public Brain<Armadillo> getBrain() {
+-        return super.getBrain();
++        return (Brain<Armadillo>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/axolotl/Axolotl.java b/net/minecraft/world/entity/animal/axolotl/Axolotl.java
+index 5f8b1814b217e034aef5d9c40a690daf2537c3bff4dc8a7a2740850bd8ca0451..582b7df63e5eeb8ad8fa39a24455dca1aba02b6a0cc99fd280de03585ce92bbd 100644
+--- a/net/minecraft/world/entity/animal/axolotl/Axolotl.java
++++ b/net/minecraft/world/entity/animal/axolotl/Axolotl.java
+@@ -565,7 +565,7 @@ public class Axolotl extends Animal implements Bucketable {
+ 
+     @Override
+     public Brain<Axolotl> getBrain() {
+-        return super.getBrain();
++        return (Brain<Axolotl>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/camel/Camel.java b/net/minecraft/world/entity/animal/camel/Camel.java
+index 98a72d6e84263d374dcb2a4dd7d292919ed6dae9785a8896fb54be681d818c0e..cdc597ef2d4e7044e2be6f0d03308feb2f89c37c3e9873539f88c1ededca4b1d 100644
+--- a/net/minecraft/world/entity/animal/camel/Camel.java
++++ b/net/minecraft/world/entity/animal/camel/Camel.java
+@@ -175,7 +175,7 @@ public class Camel extends AbstractHorse {
+ 
+     @Override
+     public Brain<Camel> getBrain() {
+-        return super.getBrain();
++        return (Brain<Camel>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/frog/Frog.java b/net/minecraft/world/entity/animal/frog/Frog.java
+index 25d1ab41324ee4d42d009a97badd8c24cd9c6cfc20d9a371a4845837543e54f0..2fb9c3ae4173ab1d71c89bb44a2a279ed821e16a20c08e2effc28a34629b5af5 100644
+--- a/net/minecraft/world/entity/animal/frog/Frog.java
++++ b/net/minecraft/world/entity/animal/frog/Frog.java
+@@ -109,7 +109,7 @@ public class Frog extends Animal {
+ 
+     @Override
+     public Brain<Frog> getBrain() {
+-        return super.getBrain();
++        return (Brain<Frog>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/frog/Tadpole.java b/net/minecraft/world/entity/animal/frog/Tadpole.java
+index 589a2ffce18ebc4c548b1277a13fce1910f4d837c037f012a3a8e93606243982..c8dde1177b86f0da5f89e42db739355f95a321ae7868dcf423a8618477cc10f1 100644
+--- a/net/minecraft/world/entity/animal/frog/Tadpole.java
++++ b/net/minecraft/world/entity/animal/frog/Tadpole.java
+@@ -83,7 +83,7 @@ public class Tadpole extends AbstractFish {
+ 
+     @Override
+     public Brain<Tadpole> getBrain() {
+-        return super.getBrain();
++        return (Brain<Tadpole>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
+index 23f917d4760971837c6d109edd1b6d7dd2d5940c203062a486a9089a2e5eb8e4..b5f1983ba5fdbd47f0ee6eaf0ea57082cb5af90bb40b499b0e6a6084091ac3a0 100644
+--- a/net/minecraft/world/entity/animal/goat/Goat.java
++++ b/net/minecraft/world/entity/animal/goat/Goat.java
+@@ -185,7 +185,7 @@ public class Goat extends Animal {
+ 
+     @Override
+     public Brain<Goat> getBrain() {
+-        return super.getBrain();
++        return (Brain<Goat>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/goat/GoatAi.java b/net/minecraft/world/entity/animal/goat/GoatAi.java
+index 360a55b4f52ff24333c39bb311ee16a008259d1e7bce26cd46ba777a2ffd2c46..5495f3b2f42e86ea56654c3496812c54229edebf0b1b08c7d893fda8c4390de6 100644
+--- a/net/minecraft/world/entity/animal/goat/GoatAi.java
++++ b/net/minecraft/world/entity/animal/goat/GoatAi.java
+@@ -75,7 +75,7 @@ public class GoatAi {
+             0,
+             ImmutableList.of(
+                 new Swim<>(0.8F),
+-                new AnimalPanic(2.0F),
++                new AnimalPanic<>(2.0F),
+                 new LookAtTargetSink(45, 90),
+                 new MoveToTargetSink(),
+                 new CountDownCooldownTicks(MemoryModuleType.TEMPTATION_COOLDOWN_TICKS),
+diff --git a/net/minecraft/world/entity/animal/golem/CopperGolem.java b/net/minecraft/world/entity/animal/golem/CopperGolem.java
+index 001cb0d34fa94b683fbdd40321563d51c0eeafe5ed63e4d782ed32671874ec9a..7f26daa6a0897003b400433a883e831f01de0f9258b434f52fa788c4c7e7865c 100644
+--- a/net/minecraft/world/entity/animal/golem/CopperGolem.java
++++ b/net/minecraft/world/entity/animal/golem/CopperGolem.java
+@@ -158,7 +158,7 @@ public class CopperGolem extends AbstractGolem implements ContainerUser, Shearab
+ 
+     @Override
+     public Brain<CopperGolem> getBrain() {
+-        return super.getBrain();
++        return (Brain<CopperGolem>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/happyghast/HappyGhast.java b/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
+index 0839e1631f95c2700d6db8b4001357046948988cfbbaca91906a14661189ea6b..de9076db1bd340b6aad8e3aabce231d69976ce5fb4179f081838fb11fb7b89d4 100644
+--- a/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
++++ b/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
+@@ -438,7 +438,7 @@ public class HappyGhast extends Animal {
+ 
+     @Override
+     public Brain<HappyGhast> getBrain() {
+-        return super.getBrain();
++        return (Brain<HappyGhast>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/happyghast/HappyGhastAi.java b/net/minecraft/world/entity/animal/happyghast/HappyGhastAi.java
+index 365f3cc2f239948855226e2297ee7b80e5657c2bf297db68661b902836273571..af5fed14b128b37e96c494e3a077c66d0db793bf6ebe01da68a67d19c432344c 100644
+--- a/net/minecraft/world/entity/animal/happyghast/HappyGhastAi.java
++++ b/net/minecraft/world/entity/animal/happyghast/HappyGhastAi.java
+@@ -37,7 +37,7 @@ public class HappyGhastAi {
+             0,
+             ImmutableList.of(
+                 new Swim<>(0.8F),
+-                new AnimalPanic(2.0F, 0),
++                new AnimalPanic<>(2.0F, 0),
+                 new LookAtTargetSink(45, 90),
+                 new MoveToTargetSink(),
+                 new CountDownCooldownTicks(MemoryModuleType.TEMPTATION_COOLDOWN_TICKS)
+diff --git a/net/minecraft/world/entity/animal/nautilus/Nautilus.java b/net/minecraft/world/entity/animal/nautilus/Nautilus.java
+index 97f7ff72b379b6d2a5baee0a0d8b6259e78c0e6fb32528b88dfb44ee4ca27d35..891bab6964cd653af6d5c41aedad7022b58c88c12141dfe3dba408789ad1166c 100644
+--- a/net/minecraft/world/entity/animal/nautilus/Nautilus.java
++++ b/net/minecraft/world/entity/animal/nautilus/Nautilus.java
+@@ -52,7 +52,7 @@ public class Nautilus extends AbstractNautilus {
+ 
+     @Override
+     public Brain<Nautilus> getBrain() {
+-        return super.getBrain();
++        return (Brain<Nautilus>)super.getBrain();
+     }
+ 
+     public @Nullable Nautilus getBreedOffspring(final ServerLevel level, final AgeableMob partner) {
+diff --git a/net/minecraft/world/entity/animal/nautilus/ZombieNautilus.java b/net/minecraft/world/entity/animal/nautilus/ZombieNautilus.java
+index e076fac09f65ec8b263d009e55dbfa3fc15642aea3418ec1d3dddf1320d12ef5..107af311c4b5ab6f5c99b9aa55c3ccbd44930059d56bbc9456745c216ca010d1 100644
+--- a/net/minecraft/world/entity/animal/nautilus/ZombieNautilus.java
++++ b/net/minecraft/world/entity/animal/nautilus/ZombieNautilus.java
+@@ -76,7 +76,7 @@ public class ZombieNautilus extends AbstractNautilus {
+ 
+     @Override
+     public Brain<ZombieNautilus> getBrain() {
+-        return super.getBrain();
++        return (Brain<ZombieNautilus>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/animal/sniffer/Sniffer.java b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
+index c66e9e48252c02657b750bb3967a6481a0ff5c9e5aa5434a61f9bc15247b7636..921927e5511027af972d17efb9e36a658dd74271c774f4b205e02274436251e0 100644
+--- a/net/minecraft/world/entity/animal/sniffer/Sniffer.java
++++ b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
+@@ -515,7 +515,7 @@ public class Sniffer extends Animal {
+ 
+     @Override
+     public Brain<Sniffer> getBrain() {
+-        return super.getBrain();
++        return (Brain<Sniffer>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/Zoglin.java b/net/minecraft/world/entity/monster/Zoglin.java
+index 7236d3c46df2d0dbfb8eeb3f5cf5a8110c3e37874885fe6020f7cf4c9b8b4c5f..cfcefc11e115fdaa0483edc9fb36b1e3e7dad0c1510fa0fea9047d5f0615f639 100644
+--- a/net/minecraft/world/entity/monster/Zoglin.java
++++ b/net/minecraft/world/entity/monster/Zoglin.java
+@@ -239,7 +239,7 @@ public class Zoglin extends Monster implements HoglinBase {
+ 
+     @Override
+     public Brain<Zoglin> getBrain() {
+-        return super.getBrain();
++        return (Brain<Zoglin>)super.getBrain();
+     }
+ 
+     protected void updateActivity() {
+diff --git a/net/minecraft/world/entity/monster/breeze/Breeze.java b/net/minecraft/world/entity/monster/breeze/Breeze.java
+index fff2258981be533d0fb0c70b38707c8ad987741b71b9c3c42cdff5426944f323..f5172852ae9cc194a9f7cdbd10ab59e611f51bda0a7202bd18f24a64974d5c38 100644
+--- a/net/minecraft/world/entity/monster/breeze/Breeze.java
++++ b/net/minecraft/world/entity/monster/breeze/Breeze.java
+@@ -86,7 +86,7 @@ public class Breeze extends Monster {
+ 
+     @Override
+     public Brain<Breeze> getBrain() {
+-        return super.getBrain();
++        return (Brain<Breeze>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/creaking/Creaking.java b/net/minecraft/world/entity/monster/creaking/Creaking.java
+index 434c6438ce682c4aff1073428d3965d9d69b5667a84b18e876c75d279bf87990..b947ef7f4e4d703c82d80deebea2d0b1dc8a431feab2d2e8cf590d2ad1f625da 100644
+--- a/net/minecraft/world/entity/monster/creaking/Creaking.java
++++ b/net/minecraft/world/entity/monster/creaking/Creaking.java
+@@ -211,7 +211,7 @@ public class Creaking extends Monster {
+ 
+     @Override
+     public Brain<Creaking> getBrain() {
+-        return super.getBrain();
++        return (Brain<Creaking>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/hoglin/Hoglin.java b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
+index cd84f3f693b3dcc6724783e549dc5821b7634ee80578ba50a64c4e76bf2a7f4a..5b1ce23f0e95f91a0dfae5cae184d741b243828118ba764c03f99d79eeb22332 100644
+--- a/net/minecraft/world/entity/monster/hoglin/Hoglin.java
++++ b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
+@@ -145,7 +145,7 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
+ 
+     @Override
+     public Brain<Hoglin> getBrain() {
+-        return super.getBrain();
++        return (Brain<Hoglin>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/hoglin/HoglinAi.java b/net/minecraft/world/entity/monster/hoglin/HoglinAi.java
+index 0678596a1eb6393706464688473d2813a9c62d8e7b62e7692297c36fdea8e929..265b379223db95764907942c2d39c420cd3f6703ae4931c1d2b54e7b18b06a5e 100644
+--- a/net/minecraft/world/entity/monster/hoglin/HoglinAi.java
++++ b/net/minecraft/world/entity/monster/hoglin/HoglinAi.java
+@@ -110,7 +110,7 @@ public class HoglinAi {
+                 SetWalkTargetAwayFrom.entity(MemoryModuleType.AVOID_TARGET, 1.3F, 15, false),
+                 createIdleMovementBehaviors(),
+                 SetEntityLookTargetSometimes.create(8.0F, UniformInt.of(30, 60)),
+-                EraseMemoryIf.<PathfinderMob>create(HoglinAi::wantsToStopFleeing, MemoryModuleType.AVOID_TARGET)
++                EraseMemoryIf.create(HoglinAi::wantsToStopFleeing, MemoryModuleType.AVOID_TARGET)
+             ),
+             MemoryModuleType.AVOID_TARGET
+         );
+diff --git a/net/minecraft/world/entity/monster/piglin/Piglin.java b/net/minecraft/world/entity/monster/piglin/Piglin.java
+index 7b3c0be04b3f1ad9fced2badd42e4530915ccd2c711c2d6cd5ae345e0e3b286f..8176a6531529ef2b8910248255b43b9ca0098f0ff4e09dc05cc47729af55efcf 100644
+--- a/net/minecraft/world/entity/monster/piglin/Piglin.java
++++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
+@@ -244,7 +244,7 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
+ 
+     @Override
+     public Brain<Piglin> getBrain() {
+-        return super.getBrain();
++        return (Brain<Piglin>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/piglin/PiglinAi.java b/net/minecraft/world/entity/monster/piglin/PiglinAi.java
+index e91ccd95bb37818a071ed739f560a03fb57305e748c53cc282659fec9354fe55..ec681c3eb4aa3afe98ff885d3351f15b2b430e24e634bca7ac289a922c331fef 100644
+--- a/net/minecraft/world/entity/monster/piglin/PiglinAi.java
++++ b/net/minecraft/world/entity/monster/piglin/PiglinAi.java
+@@ -184,7 +184,7 @@ public class PiglinAi {
+                 new SpearAttack(1.0, 1.0, 2.0F),
+                 new SpearRetreat(1.0),
+                 MeleeAttack.create(20),
+-                new CrossbowAttack(),
++                new CrossbowAttack<>(),
+                 RememberIfHoglinWasKilled.create(),
+                 EraseMemoryIf.create(PiglinAi::isNearZombified, MemoryModuleType.ATTACK_TARGET)
+             ),
+@@ -208,7 +208,7 @@ public class PiglinAi {
+                 BehaviorBuilder.triggerIf(
+                     Piglin::isDancing, GoToTargetLocation.create(MemoryModuleType.CELEBRATE_LOCATION, 4, 0.6F)
+                 ),
+-                new RunOne<LivingEntity>(
++                new RunOne<>(
+                     ImmutableList.of(
+                         Pair.of(SetEntityLookTarget.create(EntityTypes.PIGLIN, 8.0F), 1),
+                         Pair.of(RandomStroll.stroll(0.6F, 2, 1), 1),
+@@ -241,7 +241,7 @@ public class PiglinAi {
+                 SetWalkTargetAwayFrom.entity(MemoryModuleType.AVOID_TARGET, 1.0F, 12, true),
+                 createIdleLookBehaviors(),
+                 createIdleMovementBehaviors(),
+-                EraseMemoryIf.<PathfinderMob>create(PiglinAi::wantsToStopFleeing, MemoryModuleType.AVOID_TARGET)
++                EraseMemoryIf.create(PiglinAi::wantsToStopFleeing, MemoryModuleType.AVOID_TARGET)
+             ),
+             MemoryModuleType.AVOID_TARGET
+         );
+@@ -265,7 +265,7 @@ public class PiglinAi {
+                             .build()
+                     )
+                 ),
+-                DismountOrSkipMounting.<LivingEntity>create(8, PiglinAi::wantsToStopRiding)
++                DismountOrSkipMounting.create(8, PiglinAi::wantsToStopRiding)
+             ),
+             MemoryModuleType.RIDE_TARGET
+         );
+diff --git a/net/minecraft/world/entity/monster/piglin/PiglinBrute.java b/net/minecraft/world/entity/monster/piglin/PiglinBrute.java
+index 8e52807eaf40506f50624accf48459be5e9749819f9fc11b44f9dc6966b984a4..2919faea001f0765289c68923a82e5b15107594a9b39f90e8921fe8e442694e6 100644
+--- a/net/minecraft/world/entity/monster/piglin/PiglinBrute.java
++++ b/net/minecraft/world/entity/monster/piglin/PiglinBrute.java
+@@ -82,7 +82,7 @@ public class PiglinBrute extends AbstractPiglin {
+ 
+     @Override
+     public Brain<PiglinBrute> getBrain() {
+-        return super.getBrain();
++        return (Brain<PiglinBrute>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/monster/piglin/StartHuntingHoglin.java b/net/minecraft/world/entity/monster/piglin/StartHuntingHoglin.java
+index 322d1d45aa02d8342fb19dc70bb9965f3877ba9495fc27f56d0c45a8c33857d1..d0f550872535aaaf3bf470f2cec08fab6ff4a0c211a7a765ed3900a26af33983 100644
+--- a/net/minecraft/world/entity/monster/piglin/StartHuntingHoglin.java
++++ b/net/minecraft/world/entity/monster/piglin/StartHuntingHoglin.java
+@@ -18,14 +18,14 @@ public class StartHuntingHoglin {
+                     )
+                     .apply(i, (huntable, angryAt, huntedRecently, nearestPiglins) -> {
+                         return (level, body, timestamp) -> {
+-                            if (!body.isBaby() && !i.<List>tryGet(nearestPiglins).filter(p -> {
++                            if (!body.isBaby() && !i.tryGet(nearestPiglins).filter(p -> {
+                                 return p.stream().anyMatch(StartHuntingHoglin::hasHuntedRecently);
+                             }).isPresent()) {
+                                 Hoglin target = i.get(huntable);
+                                 PiglinAi.setAngerTarget(level, body, target);
+                                 PiglinAi.dontKillAnyMoreHoglinsForAWhile(body);
+                                 PiglinAi.broadcastAngerTarget(level, body, target);
+-                                i.<List>tryGet(nearestPiglins).ifPresent(p -> {
++                                i.tryGet(nearestPiglins).ifPresent(p -> {
+                                     p.forEach(PiglinAi::dontKillAnyMoreHoglinsForAWhile);
+                                 });
+                                 return true;
+diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
+index a890a7e2068f186172f065f4026010aa3df50634f103c4be754cbbe1ab0a2c83..d835083945988c19056601fe1c983c74c64590988269171ca210b10b031c88fd 100644
+--- a/net/minecraft/world/entity/monster/warden/Warden.java
++++ b/net/minecraft/world/entity/monster/warden/Warden.java
+@@ -398,7 +398,7 @@ public class Warden extends Monster implements VibrationSystem {
+ 
+     @Override
+     public Brain<Warden> getBrain() {
+-        return super.getBrain();
++        return (Brain<Warden>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
+index f3b7ac8f560d06f52126c7385d395dfd7f2c1c44718d7ea5242af17830b867b8..52780a7f80ce531984e045c5e0ed1557d1f4198494dc8f6420ad25ae8e299d34 100644
+--- a/net/minecraft/world/entity/npc/villager/Villager.java
++++ b/net/minecraft/world/entity/npc/villager/Villager.java
+@@ -199,7 +199,7 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
+ 
+     @Override
+     public Brain<Villager> getBrain() {
+-        return super.getBrain();
++        return (Brain<Villager>)super.getBrain();
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/entity/variant/PriorityProvider.java b/net/minecraft/world/entity/variant/PriorityProvider.java
+index ba1d3da850343ffb533ef1ea608db171af99becbe96e7cc9cc091d54916317e8..99f81bd6e45bb0b5bd1b7eba420c0d9172444a731905bab1b646d5c5c368e7fb 100644
+--- a/net/minecraft/world/entity/variant/PriorityProvider.java
++++ b/net/minecraft/world/entity/variant/PriorityProvider.java
+@@ -115,7 +115,7 @@ public interface PriorityProvider<Context, Condition extends PriorityProvider.Se
+     }
+ 
+     record UnpackedEntry<C, T>(T entry, int priority, PriorityProvider.SelectorCondition<C> condition) {
+-        public static final Comparator<PriorityProvider.UnpackedEntry<?, ?>> HIGHEST_PRIORITY_FIRST = Comparator.comparingInt(
++        public static final Comparator<PriorityProvider.UnpackedEntry<?, ?>> HIGHEST_PRIORITY_FIRST = Comparator.<PriorityProvider.UnpackedEntry<?, ?>>comparingInt(
+                 PriorityProvider.UnpackedEntry::priority
+             )
+             .reversed();
+diff --git a/net/minecraft/world/item/AdventureModePredicate.java b/net/minecraft/world/item/AdventureModePredicate.java
+index 5634d095a4a6fab38d6a3b978dd133f09411ab763b9ec49c99fe0f19a50cac85..91a3e4547ca14d980a2b42c7d64fcdef1b2e4b10d1e9714341f545bc8ab37867 100644
+--- a/net/minecraft/world/item/AdventureModePredicate.java
++++ b/net/minecraft/world/item/AdventureModePredicate.java
+@@ -129,7 +129,7 @@ public class AdventureModePredicate {
+         return predicates.stream().flatMap(predicatex -> {
+             return predicatex.blocks().orElseThrow().stream();
+         }).distinct().map(block -> {
+-            return block.value().getName().withStyle(ChatFormatting.DARK_GRAY);
++            return (Component)block.value().getName().withStyle(ChatFormatting.DARK_GRAY);
+         }).toList();
+     }
+ 
+diff --git a/net/minecraft/world/item/HoneycombItem.java b/net/minecraft/world/item/HoneycombItem.java
+index b4c07a7839dc7c3704900d3d5bd687697864e6943844b8a1c53d94f095535e73..421f5e29cebe2cc38d25168aee1404f25577f3955e15901756fc4779ced95b01 100644
+--- a/net/minecraft/world/item/HoneycombItem.java
++++ b/net/minecraft/world/item/HoneycombItem.java
+@@ -71,7 +71,7 @@ public class HoneycombItem extends Item implements SignApplicator {
+         BlockPos pos = context.getClickedPos();
+         BlockState oldState = level.getBlockState(pos);
+         return getWaxed(oldState)
+-            .map(
++            .<InteractionResult>map(
+                 waxedState -> {
+                     Player player = context.getPlayer();
+                     ItemStack itemInHand = context.getItemInHand();
+diff --git a/net/minecraft/world/item/component/KineticWeapon.java b/net/minecraft/world/item/component/KineticWeapon.java
+index 9007ced69525223fbce6b96e4f3f955086184e6dd800ca70bb8f5b300cb680ba..34210beb572505a52c0688d490e63de3b33e809db33a2450dcf014fa7c397584 100644
+--- a/net/minecraft/world/item/component/KineticWeapon.java
++++ b/net/minecraft/world/item/component/KineticWeapon.java
+@@ -140,10 +140,10 @@ public record KineticWeapon(
+ 
+             for (EntityHitResult hitResult : ProjectileUtil.getHitEntitiesAlong(livingEntity, attackRange, e -> {
+                 return PiercingWeapon.canHitEntity(livingEntity, e);
+-            }, ClipContext.Block.COLLIDER).map(a -> {
++            }, ClipContext.Block.COLLIDER).<Collection<EntityHitResult>>map(a -> {
+                 return List.of();
+             }, e -> {
+-                return (Collection)e;
++                return e;
+             })) {
+                 Entity otherEntity = hitResult.getEntity();
+                 if (otherEntity instanceof EnderDragonPart dragonPart) {
+diff --git a/net/minecraft/world/item/component/PiercingWeapon.java b/net/minecraft/world/item/component/PiercingWeapon.java
+index 76eeb2644a8bf28248eccc23326ac2835c539d213c0c8b77bbf1b873c94f8ea8..6ffd73cb3d1e8ec7da6b505e3ffb2526105efd329b387418571d6de0f8717cd2 100644
+--- a/net/minecraft/world/item/component/PiercingWeapon.java
++++ b/net/minecraft/world/item/component/PiercingWeapon.java
+@@ -113,10 +113,10 @@ public record PiercingWeapon(
+ 
+         for (EntityHitResult hitResult : ProjectileUtil.getHitEntitiesAlong(attacker, attackRange, e1 -> {
+             return canHitEntity(attacker, e1);
+-        }, ClipContext.Block.COLLIDER).map(a -> {
++        }, ClipContext.Block.COLLIDER).<Collection<EntityHitResult>>map(a -> {
+             return List.of();
+         }, e -> {
+-            return (Collection)e;
++            return e;
+         })) {
+             hitSomething |= attacker.stabAttack(
+                 hand, hitResult.getEntity(), damage, true, this.dealsKnockback, this.dismounts
+diff --git a/net/minecraft/world/item/crafting/RecipeMap.java b/net/minecraft/world/item/crafting/RecipeMap.java
+index b5a4b7cd120ce2925d407ba9585028467c681b47a8b8ec79d195b364b09d7d1a..ea0111973af71c5af544035f90a39725427a42af344ff3099079524a00f5e854 100644
+--- a/net/minecraft/world/item/crafting/RecipeMap.java
++++ b/net/minecraft/world/item/crafting/RecipeMap.java
+@@ -36,7 +36,7 @@ public class RecipeMap {
+     }
+ 
+     public <I extends RecipeInput, T extends Recipe<I>> Collection<RecipeHolder<T>> byType(final RecipeType<T> type) {
+-        return (Collection<RecipeHolder<T>>)this.byType.get(type);
++        return (Collection)this.byType.get(type);
+     }
+ 
+     public Collection<RecipeHolder<?>> values() {
+diff --git a/net/minecraft/world/level/biome/Climate.java b/net/minecraft/world/level/biome/Climate.java
+index 2469b0a774db35cc0263bc44420f0979e9c5f24d66dcc533732b9dff2ccf0031..ad5cd20af1ccefcb40f6bc70093ecd99c1e9713128fb98f6f479aa3370fd01a5 100644
+--- a/net/minecraft/world/level/biome/Climate.java
++++ b/net/minecraft/world/level/biome/Climate.java
+@@ -309,7 +309,7 @@ public class Climate {
+             }
+ 
+             List<Climate.RTree.Leaf<T>> leaves = values.stream().map(p -> {
+-                return new Climate.RTree.Leaf(p.getFirst(), p.getSecond());
++                return new Climate.RTree.Leaf<>(p.getFirst(), p.getSecond());
+             }).collect(Collectors.toCollection(ArrayList::new));
+             return new Climate.RTree<>(build(dimensions, leaves));
+         }
+diff --git a/net/minecraft/world/level/block/BaseEntityBlock.java b/net/minecraft/world/level/block/BaseEntityBlock.java
+index b4a380d26ff0bdbd230fcae72548d5e17d672f8a3cb4377dcf3f867693c7fb8b..7748d72ecf510951d62828907febe6d0894d189e340325becff57500ad698401 100644
+--- a/net/minecraft/world/level/block/BaseEntityBlock.java
++++ b/net/minecraft/world/level/block/BaseEntityBlock.java
+@@ -38,6 +38,6 @@ public abstract class BaseEntityBlock extends Block implements EntityBlock {
+         final BlockEntityType<E> expected,
+         final @Nullable BlockEntityTicker<? super E> ticker
+     ) {
+-        return expected == actual ? ticker : null;
++        return expected == actual ? (BlockEntityTicker<A>)ticker : null;
+     }
+ }
+diff --git a/net/minecraft/world/level/block/Block.java b/net/minecraft/world/level/block/Block.java
+index 6e44e24c451f482ccf7a6ccdd8e091b0b9eebc4376aa12b0462d0c0ead10e8f7..d6c6499027763623147b2cde3f54480e76031db3b951a2e1064644c346c32941 100644
+--- a/net/minecraft/world/level/block/Block.java
++++ b/net/minecraft/world/level/block/Block.java
+@@ -688,7 +688,7 @@ public class Block extends BlockBehaviour implements ItemLike {
+     private static <S extends StateHolder<?, S>, T extends Comparable<T>> S setValueHelper(
+         final S state, final Property<T> property, final Object value
+     ) {
+-        return state.setValue(property, (Comparable)value);
++        return state.setValue(property, (T)value);
+     }
+ 
+     @Deprecated
+diff --git a/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java b/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
+index 43951bc5288d8aefebaae60530242dc0560dbcb30577b0de54db9b4749e83dd9..7b57186849e1583814cf6b96425a4bb1f2b57a1dcb7883d2058a899a78d3cb63 100644
+--- a/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
+@@ -126,7 +126,7 @@ public class TestInstanceBlockEntity extends BlockEntity implements BoundingBoxR
+     }
+ 
+     public Component getTestName() {
+-        return this.test().map(key -> {
++        return this.test().<Component>map(key -> {
+             return Component.literal(key.identifier().toString());
+         }).orElse(INVALID_TEST_NAME);
+     }
+diff --git a/net/minecraft/world/level/dimension/end/EnderDragonFight.java b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
+index 8f0f5c90cf3b17718a5e07fdc848be6b7d12e33ffe520b68da9d854aca71d503..1cee68335d3042d9b925d193fb730c83de267c2851e26ba612f8d3057663cd6c 100644
+--- a/net/minecraft/world/level/dimension/end/EnderDragonFight.java
++++ b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
+@@ -55,6 +55,7 @@ import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
+ import net.minecraft.world.level.block.state.predicate.BlockPredicate;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
++import net.minecraft.world.level.entity.UniquelyIdentifyable;
+ import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.level.levelgen.feature.EndPodiumFeature;
+ import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
+@@ -131,7 +132,7 @@ public class EnderDragonFight extends SavedData {
+                     Codec.list(Codec.INT).lenientOptionalFieldOf("gateways", new ArrayList<>()).forGetter(fight -> {
+                         return fight.gateways;
+                     }),
+-                    Codec.list(EntityReference.codec())
++                    Codec.<EntityReference<EndCrystal>>list(EntityReference.codec())
+                         .optionalFieldOf("respawn_crystals", List.of())
+                         .forGetter(fight -> {
+                             return fight.respawnCrystals;
+diff --git a/net/minecraft/world/level/gamerules/GameRuleMap.java b/net/minecraft/world/level/gamerules/GameRuleMap.java
+index 846d6c0df142c6bb8f30f332fd1f26c9d3d8597a67fda69b05eea3db310d3d1a..165e662d852f9b66627c0141b161207d031d4f32ec2d88938e80865c1434b7d1 100644
+--- a/net/minecraft/world/level/gamerules/GameRuleMap.java
++++ b/net/minecraft/world/level/gamerules/GameRuleMap.java
+@@ -19,7 +19,7 @@ public final class GameRuleMap extends SavedData {
+     public static final Codec<GameRuleMap> CODEC = Codec.dispatchedMap(
+             BuiltInRegistries.GAME_RULE.byNameCodec(), GameRule::valueCodec
+         )
+-        .xmap(GameRuleMap::ofTrusted, GameRuleMap::map);
++        .xmap(gameRuleMap -> GameRuleMap.ofTrusted((Map)gameRuleMap), gameRuleMap -> (Reference2ObjectMap)gameRuleMap.map());
+     public static final SavedDataType<GameRuleMap> TYPE = new SavedDataType<>(
+         Identifier.withDefaultNamespace("game_rules"), GameRuleMap::of, CODEC, DataFixTypes.SAVED_DATA_GAME_RULES
+     );
+diff --git a/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java b/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java
+index 4bfea6b7115c3743955155b2ab7c8ae3964143e64676a4e6bee95d90259b57c7..d391390f455e57de16d64cc040ffb9ab663f4f857bd341a3fc513aac128460e0 100644
+--- a/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java
+@@ -27,7 +27,7 @@ public class MultifaceGrowthFeature extends Feature<MultifaceGrowthConfiguration
+         } else if (!(config.placeBlock instanceof MultifaceSpreadeableBlock placerBlock)) {
+             return false;
+         } else {
+-            List var14 = config.getShuffledDirections(random);
++            List<Direction> var14 = config.getShuffledDirections(random);
+             if (placeGrowthIfPossible(placerBlock, level, origin, level.getBlockState(origin), config, random, var14)) {
+                 return true;
+             }
+diff --git a/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java b/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java
+index 1ac923a6f413a0ba671a0325724111f2987598f64b1dfb1a78909af0835b4176..96019adc535a7a91e7e0d70aab4cab10d62ae6373cb6675d1bd7bb78e35d5f38 100644
+--- a/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java
++++ b/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java
+@@ -20,7 +20,7 @@ import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+ 
+ public class SetCustomModelDataFunction extends LootItemConditionalFunction {
+     private static final Codec<NumberProvider> COLOR_PROVIDER_CODEC = Codec.withAlternative(
+-        NumberProviders.CODEC, ExtraCodecs.RGB_COLOR_CODEC, ConstantValue::new
++        NumberProviders.CODEC, ExtraCodecs.RGB_COLOR_CODEC, integer-> new ConstantValue(integer)
+     );
+     public static final MapCodec<SetCustomModelDataFunction> MAP_CODEC = RecordCodecBuilder.mapCodec(
+         i -> {
+diff --git a/net/minecraft/world/level/storage/loot/predicates/EnvironmentAttributeCheck.java b/net/minecraft/world/level/storage/loot/predicates/EnvironmentAttributeCheck.java
+index e061ddb4f748a1b6cfbb8d73e58289cd5162108b464da4e130f5217762912e6c..d58deb301f73cb794ad838ac2d495d3623811eadcc430446e2f48bfb42463606 100644
+--- a/net/minecraft/world/level/storage/loot/predicates/EnvironmentAttributeCheck.java
++++ b/net/minecraft/world/level/storage/loot/predicates/EnvironmentAttributeCheck.java
+@@ -22,8 +22,8 @@ public record EnvironmentAttributeCheck<Value>(EnvironmentAttribute<Value> attri
+     }
+ 
+     @Override
+-    public MapCodec<EnvironmentAttributeCheck<Value>> codec() {
+-        return (MapCodec<EnvironmentAttributeCheck<Value>>)MAP_CODEC;
++    public MapCodec<EnvironmentAttributeCheck<?>> codec() {
++        return MAP_CODEC;
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java b/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java
+index 98ba7a32967c8520af117f570e6bec9cfe237ede8708d8abc3ee80d2cf19d32a..a1617e0948a29d3c659c59fd7c78852a4fd4f6cd55b94ceb436d67c899cddee2 100644
+--- a/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java
++++ b/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java
+@@ -38,7 +38,7 @@ public record LootItemBlockStatePropertyCondition(Holder<Block> block, Optional<
+         return condition.properties().flatMap(properties -> {
+             return properties.checkState(condition.block().value().getStateDefinition());
+         }).map(name -> {
+-            return DataResult.error(() -> {
++            return DataResult.<LootItemBlockStatePropertyCondition>error(() -> {
+                 return "Block " + condition.block() + " has no property" + name;
+             });
+         }).orElse(DataResult.success(condition));

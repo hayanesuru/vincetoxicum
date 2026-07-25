@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: hayanesuru <hayanesuru@outlook.jp>
+Date: Wed, 8 Jul 2026 16:04:33 +0900
+Subject: [PATCH] logger
+
+SPDX-License-Identifier: Unlicense
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+diff --git a/net/minecraft/server/Bootstrap.java b/net/minecraft/server/Bootstrap.java
+index c6d6c3d29d7d04493ace0a02db4b2e51746da806c627d60dfa865b4ecdd88daa..7661193c24a9f3790a9094f0e954999c1562bee09a3e9e3b48fc2a2a3c39ebe1 100644
+--- a/net/minecraft/server/Bootstrap.java
++++ b/net/minecraft/server/Bootstrap.java
+@@ -136,13 +136,15 @@ public class Bootstrap {
+     }
+ 
+     private static void wrapStreams() {
+-        if (LOGGER.isDebugEnabled()) {
+-            System.setErr(new DebugLoggedPrintStream("STDERR", System.err));
+-            System.setOut(new DebugLoggedPrintStream("STDOUT", STDOUT));
+-        } else {
+-            System.setErr(new LoggedPrintStream("STDERR", System.err));
+-            System.setOut(new LoggedPrintStream("STDOUT", STDOUT));
+-        }
++        // Haya start - logger
++        // if (LOGGER.isDebugEnabled()) {
++        //     System.setErr(new DebugLoggedPrintStream("STDERR", System.err));
++        //     System.setOut(new DebugLoggedPrintStream("STDOUT", STDOUT));
++        // } else {
++        //     System.setErr(new LoggedPrintStream("STDERR", System.err));
++        //     System.setOut(new LoggedPrintStream("STDOUT", STDOUT));
++        // }
++        // Haya end - logger
+     }
+ 
+     public static void realStdoutPrintln(final String string) {
+diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
+index d5166883a662b81bcc90fa19c6db591df42ca9ebd70080465e53861aa835ab48..4fbe62263297d9a0d78679e28784a41c29f9b207f043a839c3b5b1a84a263243 100644
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -123,6 +123,7 @@ public class Main {
+ 
+             if (!eula.hasAgreedToEULA()) {
+                 LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
++                LogUtils.INSTANCE.flush(); // Haya - logger
+                 return;
+             }
+ 
+@@ -257,6 +258,7 @@ public class Main {
+                 @Override
+                 public void run() {
+                     dedicatedServer.halt(true);
++                    LogUtils.INSTANCE.flush(); // Haya - logger
+                 }
+             };
+             shutdownThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
+diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
+index 8e0d491b75e09544c9ad2a4c57b76e299f2eb7f68ceab9616d2a1e75fc779511..9f4bf0ee54362aa92c1742cb55686ce2848da702d0b178d8c935d459381a10f9 100644
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -166,6 +166,22 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+ 
+     @Override
+     protected boolean initServer() throws IOException {
++        // Haya start - logger
++        Thread flush = new Thread("logger") {
++            public void run() {
++                try {
++                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning()) {
++                        LogUtils.INSTANCE.flush();
++                        Thread.sleep(100L);
++                    }
++                } catch (InterruptedException e) {
++                    e.printStackTrace();
++                }
++            }
++        };
++        flush.setDaemon(true);
++        flush.start();
++        // Haya end - logger
+         Thread consoleThread = new Thread("Server console handler") {
+             @Override
+             public void run() {

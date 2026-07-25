@@ -1,0 +1,15 @@
+/server/src/main/java
+/server/src/main/resources/data
+/server/src/main/resources/assets
+/run
+
+.classpath
+.project
+.settings/
+.DS_Store
+bin/
+.gradle/
+.vs/
+.zed/
+.idea/
+build/
