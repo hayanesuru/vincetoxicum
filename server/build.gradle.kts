@@ -4,6 +4,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 plugins {
     application
     idea
+    eclipse
     `java-library`
     id("com.gradleup.shadow") version "9.2.2"
 }
