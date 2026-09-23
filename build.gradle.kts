@@ -54,9 +54,9 @@ buildscript {
     }
 }
 
-val minecraftVersion = "26.2"
-val serverUrl = "https://piston-data.mojang.com/v1/objects/823e2250d24b3ddac457a60c92a6a941943fcd6a/server.jar"
-val serverChecksum = "823e2250d24b3ddac457a60c92a6a941943fcd6a"
+val minecraftVersion = "26.3"
+val serverUrl = "https://piston-data.mojang.com/v1/objects/33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c/server.jar"
+val serverChecksum = "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c"
 val serverJar: Provider<RegularFile> = layout.buildDirectory.file("$minecraftVersion.jar")
 val serverDir: Provider<Directory> = layout.buildDirectory.dir("$minecraftVersion/artifacts")
 val serverSrc: Provider<RegularFile> = layout.buildDirectory.file("$minecraftVersion/src.jar")
@@ -73,7 +73,7 @@ plugins {
 }
 
 version = "${minecraftVersion}+build.${System.getenv().getOrDefault("BUILD_NUMBER", "local")}"
-group = "hayanesuru.vincetoxicum"
+group = "co.hayane.vincetoxicum"
 
 val downloadServerJar = tasks.register<Download>("downloadServerJar") {
     src(serverUrl)

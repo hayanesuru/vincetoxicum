@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Unlicense
-package hayanesuru;
+package co.hayane;
 
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.helpers.MessageFormatter;
 
-public class SimpleLogger implements Logger {
+public final class SimpleLogger implements Logger {
     StringBuffer cache = new StringBuffer(1024);
     private static final String TRACE = "[TRACE] ";
     private static final String DEBUG = "[DEBUG] ";

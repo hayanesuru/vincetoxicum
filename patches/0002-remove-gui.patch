@@ -31,7 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <https://unlicense.org>
 
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 9f4bf0ee54362aa92c1742cb55686ce2848da702d0b178d8c935d459381a10f9..8df4e270eb65e0382fc1e7e5fe3b735165de721d62f9104984f3107f4b044853 100644
+index 27dd0c7923c6dc4b79d9f7c31de623ab7f2b0cc1c2b7e08b973393957123e2d0..4484b3a437985fbd028d99714a9bf242b7b92a1f697ccca92be5714a09dd49e3 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -36,7 +36,7 @@ import net.minecraft.server.ServerInterface;

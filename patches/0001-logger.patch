@@ -31,7 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <https://unlicense.org>
 
 diff --git a/net/minecraft/server/Bootstrap.java b/net/minecraft/server/Bootstrap.java
-index c6d6c3d29d7d04493ace0a02db4b2e51746da806c627d60dfa865b4ecdd88daa..7661193c24a9f3790a9094f0e954999c1562bee09a3e9e3b48fc2a2a3c39ebe1 100644
+index 28ef42c1ca6ea6e46e9a481664d194d49b2e785f59ca0fb7a6fbe0afee97766d..ed95974941aefc5ccba407972a4600aace85474ced7fa720685b9aa438580b79 100644
 --- a/net/minecraft/server/Bootstrap.java
 +++ b/net/minecraft/server/Bootstrap.java
 @@ -136,13 +136,15 @@ public class Bootstrap {
@@ -58,7 +58,7 @@ index c6d6c3d29d7d04493ace0a02db4b2e51746da806c627d60dfa865b4ecdd88daa..7661193c
  
      public static void realStdoutPrintln(final String string) {
 diff --git a/net/minecraft/server/Main.java b/net/minecraft/server/Main.java
-index d5166883a662b81bcc90fa19c6db591df42ca9ebd70080465e53861aa835ab48..4fbe62263297d9a0d78679e28784a41c29f9b207f043a839c3b5b1a84a263243 100644
+index ed3d6e5056015903759eb22bc05383dc1fda0ac4e53be343c5ef2fce52254fc3..49436546fffb2455e404cdeba8f245e2ab3f73c41fdff3079438d9c1a4e1f2b1 100644
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
 @@ -123,6 +123,7 @@ public class Main {
@@ -69,7 +69,7 @@ index d5166883a662b81bcc90fa19c6db591df42ca9ebd70080465e53861aa835ab48..4fbe6226
                  return;
              }
  
-@@ -257,6 +258,7 @@ public class Main {
+@@ -258,6 +259,7 @@ public class Main {
                  @Override
                  public void run() {
                      dedicatedServer.halt(true);
@@ -78,7 +78,7 @@ index d5166883a662b81bcc90fa19c6db591df42ca9ebd70080465e53861aa835ab48..4fbe6226
              };
              shutdownThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
 diff --git a/net/minecraft/server/dedicated/DedicatedServer.java b/net/minecraft/server/dedicated/DedicatedServer.java
-index 8e0d491b75e09544c9ad2a4c57b76e299f2eb7f68ceab9616d2a1e75fc779511..9f4bf0ee54362aa92c1742cb55686ce2848da702d0b178d8c935d459381a10f9 100644
+index 01f54a384580240649e65213199506cf30644e1d26643c22ac6dcea5fc1f62a6..27dd0c7923c6dc4b79d9f7c31de623ab7f2b0cc1c2b7e08b973393957123e2d0 100644
 --- a/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -166,6 +166,22 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface

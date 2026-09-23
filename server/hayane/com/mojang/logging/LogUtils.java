@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: Unlicense
 package com.mojang.logging;
 
-import hayanesuru.SimpleLogger;
+import co.hayane.SimpleLogger;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import java.util.function.Supplier;
 
-public class LogUtils {
+@NullMarked
+public final class LogUtils {
     public static final SimpleLogger INSTANCE = new SimpleLogger();
+    @Nullable
     public static final Marker FATAL_MARKER = null;
 
     public static Logger getLogger() {

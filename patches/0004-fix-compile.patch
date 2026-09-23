@@ -1214,19 +1214,6 @@ index b56eea77e041d6c88093208852ccd9110b478d297c750b3fc164c67322be3b00..71151bc8
                                  .optionalFieldOf("value", MinMaxBounds.Ints.ANY)
                                  .forGetter(PlayerPredicate.StatMatcher::range)
                          )
-diff --git a/net/minecraft/commands/arguments/ArgumentSignatures.java b/net/minecraft/commands/arguments/ArgumentSignatures.java
-index 03eaed85f8b248c2f01bbd31ed37bb032eb3ab1c7ee40d1e91654f5af7fd9ff8..bec004d5b96ddccdb9c606ca1b21299fbccb202de86e45313c68de9f69e96182 100644
---- a/net/minecraft/commands/arguments/ArgumentSignatures.java
-+++ b/net/minecraft/commands/arguments/ArgumentSignatures.java
-@@ -14,7 +14,7 @@ public record ArgumentSignatures(List<ArgumentSignatures.Entry> entries) {
-     private static final int MAX_ARGUMENT_NAME_LENGTH = 16;
- 
-     public ArgumentSignatures(final FriendlyByteBuf input) {
--        this(input.readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 8), ArgumentSignatures.Entry::new));
-+        this(input.<Entry, List<Entry>>readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 8), ArgumentSignatures.Entry::new));
-     }
- 
-     public void write(final FriendlyByteBuf output) {
 diff --git a/net/minecraft/commands/execution/tasks/BuildContexts.java b/net/minecraft/commands/execution/tasks/BuildContexts.java
 index 71a5b0c0b5d7c4b92305e7aad0acc53fd2170d619f600b503777d9da278273a8..36205d1f974dc60cff29cafcac553bc647ac900db0f2b9c782facc1265d2e874 100644
 --- a/net/minecraft/commands/execution/tasks/BuildContexts.java
@@ -1255,10 +1242,10 @@ index 71a5b0c0b5d7c4b92305e7aad0acc53fd2170d619f600b503777d9da278273a8..36205d1f
  
                  for (T executionSource : currentSources) {
 diff --git a/net/minecraft/commands/synchronization/ArgumentTypeInfos.java b/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
-index c77c36310228b0035d3fe431c86c2641b6a70ca52d88e068f5d1bf1bdded5258..9c5b28cd7a5d9be5c4fd52188cd59267040e64bf9e12abb017505a89d7b8cfb8 100644
+index b1bceddf3c8017b4b925617ab91c64a6559ab624fd4ef81e8554ba6947bf066a..138fbbbf5f7b19d0443abf2af24946afb6221c277ffe5f57733c0b3dd2b1985d 100644
 --- a/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
 +++ b/net/minecraft/commands/synchronization/ArgumentTypeInfos.java
-@@ -240,21 +240,21 @@ public class ArgumentTypeInfos {
+@@ -242,21 +242,21 @@ public class ArgumentTypeInfos {
          );
          register(registry, "time", TimeArgument.class, new TimeArgument.Info());
          register(
@@ -1286,10 +1273,10 @@ index c77c36310228b0035d3fe431c86c2641b6a70ca52d88e068f5d1bf1bdded5258..9c5b28cd
          register(
              registry,
 diff --git a/net/minecraft/commands/synchronization/SuggestionProviders.java b/net/minecraft/commands/synchronization/SuggestionProviders.java
-index 8163c7e1565200fb7d5b28d0994d4aa249c987a8ca20057d9c4057e88dab78cc..1502ba90ed7bc4fa7b3909034f918011c34b45831ebf74c6b86819fabd8d1169 100644
+index 5f1384b69eb3dc34b4b85446158cdf5755b6541d658fedcd0a55b62939b023fb..efed212310e14979b5366c633393e4c153f09df376366ec5d88385b743cc4459 100644
 --- a/net/minecraft/commands/synchronization/SuggestionProviders.java
 +++ b/net/minecraft/commands/synchronization/SuggestionProviders.java
-@@ -43,7 +43,7 @@ public class SuggestionProviders {
+@@ -48,7 +48,7 @@ public class SuggestionProviders {
                  "A command suggestion provider is already registered with the name '" + name + "'"
              );
          } else {
@@ -1311,33 +1298,11 @@ index 71c1f859e1d5f467a738d1e5c3965a39ddb4f4da31da2e5167ea3eebba3277f3..1052587f
      }
  
      Stream<HolderSet.Named<T>> getTags();
-diff --git a/net/minecraft/core/RegistrySetBuilder.java b/net/minecraft/core/RegistrySetBuilder.java
-index 214f98e22d5f21243d11742e6ca5a916b6e748332cf8609e9592f3a970c3ce2d..ee6138f1715af699e057a53d35d43626cd61c1d0723e248c0d3ff7171ec18e75 100644
---- a/net/minecraft/core/RegistrySetBuilder.java
-+++ b/net/minecraft/core/RegistrySetBuilder.java
-@@ -501,7 +501,7 @@ public class RegistrySetBuilder {
-         }
- 
-         private <T> Holder.Reference<T> getOrCreate(final ResourceKey<T> id) {
--            return (Holder.Reference<T>)this.holders.computeIfAbsent(id, k -> {
-+            return this.holders.computeIfAbsent((ResourceKey)id, k -> {
-                 return Holder.Reference.createStandAlone(this.owner, (ResourceKey<Object>)k);
-             });
-         }
-@@ -509,7 +509,7 @@ public class RegistrySetBuilder {
- 
-     private static class UniversalOwner implements HolderOwner<Object> {
-         public <T> HolderOwner<T> cast() {
--            return this;
-+            return (HolderOwner<T>)this;
-         }
-     }
- 
 diff --git a/net/minecraft/core/component/DataComponentPatch.java b/net/minecraft/core/component/DataComponentPatch.java
-index 3a0367f8726a1a6216594e11477b3d839b6285325b2a62ce7c33da5cdc61f890..09a2a2beb281e73f48f9109f5cdcb39da986b57441494e72793399d1236cee31 100644
+index 13c21e225eb3253178c0ad71938e3a71099407903c7db40871d8fe2be6307ed1..31b76be14efe9e2ed46caa673e0f63f4ed3ad7bb3f7c90b0f8c989196f2fed4f 100644
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
-@@ -59,7 +59,7 @@ public final class DataComponentPatch {
+@@ -49,7 +49,7 @@ public final class DataComponentPatch {
                      }
                  }
  
@@ -1395,10 +1360,10 @@ index 2c881b4c67e69d1fbdc01dbb73018b64bb637dc9d7bd6fdb960bf98f91ade6da..cb45363b
          );
  
 diff --git a/net/minecraft/core/registries/BuiltInRegistries.java b/net/minecraft/core/registries/BuiltInRegistries.java
-index 1b329a042888335627afbce3cd6d5eb267189049d18304cc8caa1b2f21af9662..0a1b5a9f710612692d586600ed880e92380e31f2c6e86a29a9f842df21542cfb 100644
+index 75ff02938c59118d929b9d37a38f475d2361323fb351c35fa455f51c223bea39..f9f6597cd555afe5892e5f387d705979f5fc46374cf0b654b1c7757e77b6f414 100644
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -552,7 +552,7 @@ public class BuiltInRegistries {
+@@ -548,7 +548,7 @@ public class BuiltInRegistries {
          LOADERS.put(key, () -> {
              return loader.run(registry);
          });
@@ -1407,6 +1372,28 @@ index 1b329a042888335627afbce3cd6d5eb267189049d18304cc8caa1b2f21af9662..0a1b5a9f
          return registry;
      }
  
+diff --git a/net/minecraft/core/registries/codec/HolderSetCodec.java b/net/minecraft/core/registries/codec/HolderSetCodec.java
+index 92dcd5b0c04a8b5c472a99506ff56d841bf703ca7d0d87f97ccc03dec97cc17b..465fccd1a13cc08cda5325b12f97d9dd766b50c05a3b0109157ac37ec395bcb9 100644
+--- a/net/minecraft/core/registries/codec/HolderSetCodec.java
++++ b/net/minecraft/core/registries/codec/HolderSetCodec.java
+@@ -83,7 +83,7 @@ public class HolderSetCodec<E> implements Codec<HolderSet<E>> {
+     }
+ 
+     private static <E> DataResult<HolderSet<E>> lookupTag(final HolderGetter<E> registry, final TagKey<E> key) {
+-        return registry.get(key).map(DataResult::success).orElseGet(() -> {
++        return (DataResult)registry.get(key).map(DataResult::success).orElseGet(() -> {
+             return DataResult.error(() -> {
+                 return "Missing tag: '" + key.location() + "' in '" + key.registry().identifier() + "'";
+             });
+@@ -98,7 +98,7 @@ public class HolderSetCodec<E> implements Codec<HolderSet<E>> {
+                     return "Registry " + this.registryKey.identifier() + " is not available in this context";
+                 });
+             } else {
+-                return !named.canSerializeIn((HolderOwner<T>)maybeOwner.get()) ? DataResult.error(() -> {
++                return !named.canSerializeIn(maybeOwner.get()) ? DataResult.error(() -> {
+                     return "HolderSet " + named + " is not valid in current registry set";
+                 }) : this.tagKeyOrValuesCodec.encode(Either.left(named.key()), ops, prefix);
+             }
 diff --git a/net/minecraft/data/info/RegistryDumpReport.java b/net/minecraft/data/info/RegistryDumpReport.java
 index e2a46cdec29aef3bdb7a62cb6e4e6b106187318b50af960888b9481add2663d0..047c004c232159d0b70b31c48213ff988edb4a01818c4d3b9001138ab855f1f5 100644
 --- a/net/minecraft/data/info/RegistryDumpReport.java
@@ -1420,24 +1407,11 @@ index e2a46cdec29aef3bdb7a62cb6e4e6b106187318b50af960888b9481add2663d0..047c004c
          result.addProperty("protocol_id", registryId);
          JsonObject entries = new JsonObject();
          registry.listElements().forEach(holder -> {
-diff --git a/net/minecraft/data/loot/LootTableProvider.java b/net/minecraft/data/loot/LootTableProvider.java
-index cac223921e18010a1282c386d75f30ec83378165a7409bd5634ba7da1ba27c51..3e32e6138675f18f29ee313e1b45dc484ac85a41320bcc87309382c1cd029df7 100644
---- a/net/minecraft/data/loot/LootTableProvider.java
-+++ b/net/minecraft/data/loot/LootTableProvider.java
-@@ -108,7 +108,7 @@ public class LootTableProvider implements DataProvider {
-                 ResourceKey<LootTable> id = entry.getKey();
-                 LootTable table = entry.getValue();
-                 Path path = this.pathProvider.json(id.identifier());
--                return DataProvider.saveStable(cache, registries, LootTable.DIRECT_CODEC, table, path);
-+                return (CompletableFuture<?>)DataProvider.saveStable(cache, registries, LootTable.DIRECT_CODEC, table, path);
-             }).toArray(CompletableFuture[]::new));
-         }
-     }
 diff --git a/net/minecraft/data/registries/RegistriesDatapackGenerator.java b/net/minecraft/data/registries/RegistriesDatapackGenerator.java
-index 818d21504f32293f6f37d4d90d32c9ac1d8fce631b4476f16b9faf95939dd69a..e9e1887dc08ab1778de9274ac0cb91b0b3894894a2ba38e3aade2500c6d3e428 100644
+index c7ad1ec83906c75966a59390f6cca3e2230c036b425b9490ffcea6d129c3957e..9525321e6703d78d063f7d810b7bf1eb778ff5ded4b456e34cbe1dc9b2c5c49d 100644
 --- a/net/minecraft/data/registries/RegistriesDatapackGenerator.java
 +++ b/net/minecraft/data/registries/RegistriesDatapackGenerator.java
-@@ -46,7 +46,7 @@ public class RegistriesDatapackGenerator implements DataProvider {
+@@ -68,7 +68,7 @@ public class RegistriesDatapackGenerator implements DataProvider {
          return registries.lookup(registryKey).map(registry -> {
              PackOutput.PathProvider pathProvider = this.output.createRegistryElementsPathProvider(registryKey);
              return CompletableFuture.allOf(registry.listElements().map(e -> {
@@ -1459,24 +1433,11 @@ index 274285a04f65cb3bac102de340f5fe5092874eed5790c19a4095ff43c1b4474d..9818df2c
                                      ? Optional.empty()
                                      : FormattedText.STOP_ITERATION;
                              },
-diff --git a/net/minecraft/network/chat/LastSeenMessages.java b/net/minecraft/network/chat/LastSeenMessages.java
-index 4ca304d3b912b71521ac592a77dedc9e61ecd63ccda4332f278c41d3e5a562ab..79e399ee46f69c7e792e7ee74facb182693ae282ca6aeccf03237a22335611e9 100644
---- a/net/minecraft/network/chat/LastSeenMessages.java
-+++ b/net/minecraft/network/chat/LastSeenMessages.java
-@@ -46,7 +46,7 @@ public record LastSeenMessages(List<MessageSignature> entries) {
-         public static final LastSeenMessages.Packed EMPTY = new LastSeenMessages.Packed(List.of());
- 
-         public Packed(final FriendlyByteBuf input) {
--            this(input.readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 20), MessageSignature.Packed::read));
-+            this(input.<MessageSignature.Packed, List<MessageSignature.Packed>>readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 20), MessageSignature.Packed::read));
-         }
- 
-         public void write(final FriendlyByteBuf output) {
 diff --git a/net/minecraft/network/codec/StreamCodec.java b/net/minecraft/network/codec/StreamCodec.java
-index 6824c6f8bdae994bdc8fcb8eb9a27eba865619423e04bebce4d27d22687c159a..d113379fd67ec71fce2fc748ba4713be5afe15971829b75e9867aec335916123 100644
+index 73358e08ea35dc1d05b70dfc5d38d35600d32f995b63aa6659d9e7e4d5d8f4ce..8bd4ad6d987081f5ea60d00cf0e0447fc140b706e344417d8db7b6bcdd1d3649 100644
 --- a/net/minecraft/network/codec/StreamCodec.java
 +++ b/net/minecraft/network/codec/StreamCodec.java
-@@ -627,7 +627,7 @@ public interface StreamCodec<B, V> extends StreamEncoder<B, V>, StreamDecoder<B,
+@@ -767,7 +767,7 @@ public interface StreamCodec<B, V> extends StreamEncoder<B, V>, StreamDecoder<B,
      }
  
      default <S extends B> StreamCodec<S, V> cast() {
@@ -1511,19 +1472,6 @@ index da6fa7fcbdbf6abcc9c96a0cb0b9ac164d9fd3638992fb4fcf2be8954e3e8919..3c1f45e1
                  codec.encode(output, (T)payload);
              }
  
-diff --git a/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java b/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java
-index a5128a9f4504f29128a8493143a7442c1d36567a475504154113f22292299790..7b0399f76bc48c95394d8eb659a383da991eee8b7fbe8683d260d422cfa1a8bd 100644
---- a/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java
-+++ b/net/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket.java
-@@ -15,7 +15,7 @@ public record ClientboundUpdateEnabledFeaturesPacket(Set<Identifier> features)
-     );
- 
-     private ClientboundUpdateEnabledFeaturesPacket(final FriendlyByteBuf input) {
--        this(input.readCollection(HashSet::new, FriendlyByteBuf::readIdentifier));
-+        this(input.<Identifier, Set<Identifier>>readCollection(HashSet::new, FriendlyByteBuf::readIdentifier));
-     }
- 
-     private void write(final FriendlyByteBuf output) {
 diff --git a/net/minecraft/network/protocol/game/ClientboundGameRuleValuesPacket.java b/net/minecraft/network/protocol/game/ClientboundGameRuleValuesPacket.java
 index d8d0d7d97fc30ca5e0c67fe022ce2fb073087963ee9638afb52babd71172d746..d90bed3eade882df8039304fec70a498eb0627bc5be6664ee6199609b6041451 100644
 --- a/net/minecraft/network/protocol/game/ClientboundGameRuleValuesPacket.java
@@ -1545,6 +1493,33 @@ index d8d0d7d97fc30ca5e0c67fe022ce2fb073087963ee9638afb52babd71172d746..d90bed3e
              HashMap::new, ResourceKey.streamCodec(Registries.GAME_RULE), ByteBufCodecs.STRING_UTF8
          )
          .map(ClientboundGameRuleValuesPacket::new, ClientboundGameRuleValuesPacket::values);
+diff --git a/net/minecraft/network/protocol/game/VecDelta.java b/net/minecraft/network/protocol/game/VecDelta.java
+index 54dd5300efaebc8497c980b477fceeaaf9db735c29b27cac74b2774a59821346..91a9ee447387bab7793325c4f290e92262a12f129cf7af2046709f691216d1fb 100644
+--- a/net/minecraft/network/protocol/game/VecDelta.java
++++ b/net/minecraft/network/protocol/game/VecDelta.java
+@@ -56,8 +56,8 @@ public sealed interface VecDelta permits VecDelta.Linear, VecDelta.Stepped {
+                     output.writeShort(ya);
+                     output.writeShort(za);
+                     break;
+-                case VecDelta.Stepped(List var20):
+-                    List var10 = var20;
++                case VecDelta.Stepped(List<VecDelta.Stepped.DeltaStep> var20):
++                    List<VecDelta.Stepped.DeltaStep> var10 = var20;
+ 
+                     for (VecDelta.Stepped.DeltaStep step : var10) {
+                         output.writeVarInt(step.ticks);
+diff --git a/net/minecraft/network/protocol/game/VecDeltaCodec.java b/net/minecraft/network/protocol/game/VecDeltaCodec.java
+index 6be19830635ef3ec7a31d47969bb16d33c0eaea58ffb32e5f122b79404d10983..a8633996d003a3def36fd4310435f39a9aa1ca3766b58e0580255f6a7f77d4d9 100644
+--- a/net/minecraft/network/protocol/game/VecDeltaCodec.java
++++ b/net/minecraft/network/protocol/game/VecDeltaCodec.java
+@@ -54,6 +54,7 @@ public class VecDeltaCodec {
+ 
+                 var10000 = var6;
+ 
++                List<PositionStep> var14;
+                 try {
+                     var14 = var10000.steps();
+                 } catch (Throwable var9) {
 diff --git a/net/minecraft/network/syncher/EntityDataSerializer.java b/net/minecraft/network/syncher/EntityDataSerializer.java
 index fbcd93b8d70c86a885966f58296a0c86bc59a15d2988371981d00c0a84c66259..69a9eb1fae9d3a2e7a12aa8012589a2a196840101bf52cd13351feb4dbbdb83d 100644
 --- a/net/minecraft/network/syncher/EntityDataSerializer.java
@@ -1559,10 +1534,10 @@ index fbcd93b8d70c86a885966f58296a0c86bc59a15d2988371981d00c0a84c66259..69a9eb1f
          };
      }
 diff --git a/net/minecraft/network/syncher/EntityDataSerializers.java b/net/minecraft/network/syncher/EntityDataSerializers.java
-index 500d3c94215ab1b39ab47f0e94b5d9a3a9cb9d57c266e8c683306783087df9f1..3c21069297a13fa9cf12c248a1be2c6360de0b85c7222a57d2f1e89fb7290126 100644
+index 015195cdcc906f56d6de4dd032ddd8c8d7d7d81cb5ac77350e663e7a36b78803..d091a155c66d248ab22fb2d4cc4ed6968ab2610d117e91d1ab14fa63b0a3c233 100644
 --- a/net/minecraft/network/syncher/EntityDataSerializers.java
 +++ b/net/minecraft/network/syncher/EntityDataSerializers.java
-@@ -115,7 +115,7 @@ public class EntityDataSerializers {
+@@ -116,7 +116,7 @@ public class EntityDataSerializers {
          Direction.STREAM_CODEC
      );
      public static final EntityDataSerializer<Optional<EntityReference<LivingEntity>>> OPTIONAL_LIVING_ENTITY_REFERENCE = EntityDataSerializer.forValueType(
@@ -1571,32 +1546,32 @@ index 500d3c94215ab1b39ab47f0e94b5d9a3a9cb9d57c266e8c683306783087df9f1..3c210692
      );
      public static final EntityDataSerializer<Optional<GlobalPos>> OPTIONAL_GLOBAL_POS = EntityDataSerializer.forValueType(
          GlobalPos.STREAM_CODEC.apply(ByteBufCodecs::optional)
-diff --git a/net/minecraft/resources/HolderSetCodec.java b/net/minecraft/resources/HolderSetCodec.java
-index 635556af78259134a61323a202b6fab83d1be7afcd819252b3b177b3371aa283..41a8cd371c9bffc8b99465057d693043de4205fd5993a1088fa8b0da34e0affd 100644
---- a/net/minecraft/resources/HolderSetCodec.java
-+++ b/net/minecraft/resources/HolderSetCodec.java
-@@ -71,7 +71,7 @@ public class HolderSetCodec<E> implements Codec<HolderSet<E>> {
-     }
- 
-     private static <E> DataResult<HolderSet<E>> lookupTag(final HolderGetter<E> registry, final TagKey<E> key) {
--        return registry.get(key).map(DataResult::success).orElseGet(() -> {
-+        return (DataResult)registry.get(key).map(DataResult::success).orElseGet(() -> {
-             return DataResult.error(() -> {
-                 return "Missing tag: '" + key.location() + "' in '" + key.registry().identifier() + "'";
-             });
 diff --git a/net/minecraft/resources/RegistryDataLoader.java b/net/minecraft/resources/RegistryDataLoader.java
-index 6a7e57a989e7f875f781057a22ccfa4b48d03bccdb87f1d89aad631c68607f38..8d2e5827adf1b13e1e8c695aef168debe05200d03ec5acaa75b3628966fd08be 100644
+index 930ef0d4afe41a9a165e64fea0f659c5a429e680d69a2758e51d27c61aa8e6cd..79126302d2274e986ff10e1678b9e1108f82dccb578320152afc05dab97dcc0f 100644
 --- a/net/minecraft/resources/RegistryDataLoader.java
 +++ b/net/minecraft/resources/RegistryDataLoader.java
-@@ -80,7 +80,7 @@ import org.slf4j.Logger;
+@@ -94,7 +94,7 @@ import org.slf4j.Logger;
  
  public class RegistryDataLoader {
      private static final Logger LOGGER = LogUtils.getLogger();
 -    private static final Comparator<ResourceKey<?>> ERROR_KEY_COMPARATOR = Comparator.comparing(ResourceKey::registry)
 +    private static final Comparator<ResourceKey<?>> ERROR_KEY_COMPARATOR = Comparator.<ResourceKey<?>, Identifier>comparing(ResourceKey::registry)
          .thenComparing(ResourceKey::identifier);
-     public static final List<RegistryDataLoader.RegistryData<?>> WORLDGEN_REGISTRIES = List.of(
+     public static final List<RegistryDataLoader.RegistryData<?>> WORLD_REGISTRIES = List.of(
          new RegistryDataLoader.RegistryData<>(Registries.DIMENSION_TYPE, DimensionType.DIRECT_CODEC),
+diff --git a/net/minecraft/server/commands/PlaceCommand.java b/net/minecraft/server/commands/PlaceCommand.java
+index adca658143331af65338bd03c14e595511ecb1809310e80f8aa21886ed2724d1..fbe9b4967c484101ebd405fbd2940f1bc7089971e6a9ba9359770643c6ba7df7 100644
+--- a/net/minecraft/server/commands/PlaceCommand.java
++++ b/net/minecraft/server/commands/PlaceCommand.java
+@@ -77,7 +77,7 @@ public class PlaceCommand {
+                 .then(
+                     Commands.literal("feature")
+                         .then(
+-                            ((RequiredArgumentBuilder)Commands.argument(
++                            (Commands.argument(
+                                         "feature", ResourceOrIdArgument.feature(context)
+                                     )
+                                     .executes(
 diff --git a/net/minecraft/server/dedicated/Settings.java b/net/minecraft/server/dedicated/Settings.java
 index b7093d0902efef63259d7033d429e6b959878cfd7545f49dc15c6a7a98e43d4d..e0bafebf9d42cd8461f20302e46bd8785ef3a5d69dcacf2a0496a86f5ee5b48c 100644
 --- a/net/minecraft/server/dedicated/Settings.java
@@ -1707,7 +1682,7 @@ index ea9cc030ca7e59d6d356be979971ef859faee3f5908858aac554a4ee65d49faa..fd5335f6
                                      .optionalFieldOf("enum", List.of())
                                      .forGetter(Schema::enumValues)
 diff --git a/net/minecraft/server/jsonrpc/methods/DiscoveryService.java b/net/minecraft/server/jsonrpc/methods/DiscoveryService.java
-index 77e97911cdd3e1926a73ae86ac2295ec96a22a723109cc28d0aafabf0de268a1..2d16a9ae3e15dfb8cb3fd459fe071c8b7505d0deea70f31f1564acde0f8092ba 100644
+index 4e9a27cb9fdfcfb132d278a2503ac08e622fbc6afa10bbb1c400bf961344ef54..fa40cfec498d5dc8c36c7e1a865b916ee0597f0d94f679066826b96755e7198d 100644
 --- a/net/minecraft/server/jsonrpc/methods/DiscoveryService.java
 +++ b/net/minecraft/server/jsonrpc/methods/DiscoveryService.java
 @@ -50,9 +50,9 @@ public class DiscoveryService {
@@ -1757,10 +1732,10 @@ index f3cf32fc7037c9502b87b325f4b7b966b8ee6e46e7bf42f95dac40029de55f59..96e9dcb3
          .toList();
      private volatile int topPriorityQueueIndex = PRIORITY_LEVEL_COUNT;
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 40c1eda4bfc9f47f004d116c15037edf39f3a94e9a2f50e74ba20f799f1a0ab8..da34a35ba8f0150a644be1a25c1c0c473e47570382368edef00e42df4b03e55d 100644
+index 426ee455034cb90ad0e1823a078688a55303205a965a043bba62471ef42ec8ff..caeec9a978191a71f554476724db1a0057944975f1bd4fb9dbfb9a07d7e79a8c 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -1119,7 +1119,7 @@ public class ServerGamePacketListenerImpl
+@@ -1126,7 +1126,7 @@ public class ServerGamePacketListenerImpl
              ItemStack writtenBook = carried.transmuteCopy(Items.WRITTEN_BOOK);
              writtenBook.remove(DataComponents.WRITABLE_BOOK_CONTENT);
              List<Filterable<Component>> pages = contents.stream().map(page -> {
@@ -1795,11 +1770,23 @@ index 19395980a452fb892cd6d97a879c18d5a0789eaa0d581438e5a9a1eb5cf3ce6d..218e49e9
          });
          return this;
      }
+diff --git a/net/minecraft/util/CommonLinks.java b/net/minecraft/util/CommonLinks.java
+index 7d1a5c70112fe4f1fa2a689793d5c65846886e55a23e435ecdda2faf6bd46c15..41af5c21d3272be7adbf5a8fe9a2ac308e4a2fdd207d2fb19faa1a8e16aaa6d8 100644
+--- a/net/minecraft/util/CommonLinks.java
++++ b/net/minecraft/util/CommonLinks.java
+@@ -47,6 +47,7 @@ public class CommonLinks {
+         return URI.create(switch (reference) {
+             case EXPIRED_TRIAL -> uri + "&ref=expiredTrial";
+             case EXPIRED_REALM -> uri + "&ref=expiredRealm";
++            case NONE -> null;
+         });
+     }
+ 
 diff --git a/net/minecraft/util/CubicSpline.java b/net/minecraft/util/CubicSpline.java
-index 3398a3066112aab4fba0d041ff3394fc51061c6ab678ab3b1425dd347e980343..5a4c6c6dbc6aa93956e22c2b721f53f0cbb694a1c1c29918d1830f7b03dbdb05 100644
+index 1d26dfe1c368e81476499af788d29f67d2a353e739c667414ca135405b461b41..a90af08ee417a402cd558ab560cd12718f791c47666874e1b882c07425480cb7 100644
 --- a/net/minecraft/util/CubicSpline.java
 +++ b/net/minecraft/util/CubicSpline.java
-@@ -67,15 +67,15 @@ public sealed interface CubicSpline<I> permits CubicSpline.Multipoint, CubicSpli
+@@ -64,15 +64,15 @@ public sealed interface CubicSpline<I> permits CubicSpline.Multipoint, CubicSpli
                          e -> {
                              return e.map(
                                  CubicSpline.Constant::new,
@@ -1818,6 +1805,15 @@ index 3398a3066112aab4fba0d041ff3394fc51061c6ab678ab3b1425dd347e980343..5a4c6c6d
                                  default -> throw new MatchException(null, null);
                              };
                          }
+@@ -168,7 +168,7 @@ public sealed interface CubicSpline<I> permits CubicSpline.Multipoint, CubicSpli
+ 
+         @Override
+         public <R extends BoundedFloatFunction<?>> CubicSpline<R> mapCoordinates(final Function<I, R> mapper) {
+-            return this;
++            return (CubicSpline<R>)this;
+         }
+     }
+ 
 diff --git a/net/minecraft/util/EncoderCache.java b/net/minecraft/util/EncoderCache.java
 index 2d20146c0ae8faae1e4d41055049b180b698a9585d5534932cd817a3a8f0b4ca..4499310efbc5fee6e4ea8346ababa5f974aa5dccccee4dd607db7c67c8659bae 100644
 --- a/net/minecraft/util/EncoderCache.java
@@ -1832,10 +1828,10 @@ index 2d20146c0ae8faae1e4d41055049b180b698a9585d5534932cd817a3a8f0b4ca..4499310e
                  });
              }
 diff --git a/net/minecraft/util/ExtraCodecs.java b/net/minecraft/util/ExtraCodecs.java
-index 99acf90701602559b1f246adaa8d3b73764c72560b9f8a4ca991ff1d6f6a9383..a7097961e1f7d7a3fd53ce6f769f206208faf78f250028347773e8b6b6aa90e4 100644
+index a0b1326fdddd91468d425d36ee033512acf8df19d95d8290f4a3c81a254800e6..3335bc69ed36319d664f2aec5d4cce46c923c33eba79dc6224ce2923f63c4f3b 100644
 --- a/net/minecraft/util/ExtraCodecs.java
 +++ b/net/minecraft/util/ExtraCodecs.java
-@@ -370,7 +370,7 @@ public class ExtraCodecs {
+@@ -384,7 +384,7 @@ public class ExtraCodecs {
          }, p -> {
              return ImmutableList.of(getMin.apply((I)p), getMax.apply((I)p));
          });
@@ -1844,7 +1840,7 @@ index 99acf90701602559b1f246adaa8d3b73764c72560b9f8a4ca991ff1d6f6a9383..a7097961
                  i -> {
                      return i.group(
                              pointCodec.fieldOf(lowerBoundName).forGetter(Pair::getFirst),
-@@ -793,7 +793,7 @@ public class ExtraCodecs {
+@@ -807,7 +807,7 @@ public class ExtraCodecs {
              public <T> RecordBuilder<T> encode(final V input, final DynamicOps<T> ops, final RecordBuilder<T> builder) {
                  K type = (K)typeGetter.apply(input);
                  builder.add(typeKey, typeCodec.encodeStart(ops, type));
@@ -1867,20 +1863,15 @@ index 775cab64f718c7c3d6fa2a07d75b44f40852b78d097c59a519b7f1622bcb84f2..4535412f
          )
          .thenComparing(Pair::getSecond, HASH_COMPARATOR);
 diff --git a/net/minecraft/util/PlaceholderLookupProvider.java b/net/minecraft/util/PlaceholderLookupProvider.java
-index dd01bab3619779accf87af7e0dad21b337076df9023ecc1b28fbc9fe76b61427..3493a397cbd3021f00388757e4562b0f777307705e5ff80f855040b9d402a85e 100644
+index 5715c806a84ace94d1e0e3c7a57c9b12640c75974fd061a687b2a00fb4eba5a0..23ed269f90753b6ead5db0c49d1487ecc782cddb81b9fcf96e015e4c3409b6a6 100644
 --- a/net/minecraft/util/PlaceholderLookupProvider.java
 +++ b/net/minecraft/util/PlaceholderLookupProvider.java
-@@ -112,11 +112,11 @@ public class PlaceholderLookupProvider implements HolderGetter.Provider {
+@@ -104,7 +104,7 @@ public class PlaceholderLookupProvider implements HolderGetter.Provider {
          }
  
          public <T> HolderGetter<T> castAsLookup() {
 -            return this;
 +            return (HolderGetter<T>)this;
-         }
- 
-         public <T> HolderOwner<T> castAsOwner() {
--            return this;
-+            return (HolderOwner<T>)this;
          }
      }
  }
@@ -1898,10 +1889,10 @@ index 42fd78084fd40f0a19f420eb944a859e24b4c095f31a33b7715f2c139a48c4e0..bf3db29f
  
      public static <T> SortedArraySet<T> create(final Comparator<T> comparator) {
 diff --git a/net/minecraft/util/Util.java b/net/minecraft/util/Util.java
-index 7c07946292137b77983efe0f62eccadc9a0e9a23b399bbee8c15070e4a6140ea..d38e82a5cd644cb17d5060bff5b756366336a9a65ba382fa27a5d10b53ab1dbc 100644
+index c797e7120cee650d999b38749bd45f2e2639b22bf0bc02906132d528e11f8cc7..c33263155574bdd493a8b43da8c7cce2e3f14237a23f930e3fb8fb81ba173b57 100644
 --- a/net/minecraft/util/Util.java
 +++ b/net/minecraft/util/Util.java
-@@ -691,7 +691,7 @@ public class Util {
+@@ -700,7 +700,7 @@ public class Util {
      public static <K extends Enum<K>, V> Map<K, V> makeEnumMap(final Class<K> keyType, final Function<K, V> function) {
          EnumMap<K, V> map = new EnumMap<>(keyType);
  
@@ -1911,10 +1902,10 @@ index 7c07946292137b77983efe0f62eccadc9a0e9a23b399bbee8c15070e4a6140ea..d38e82a5
          }
  
 diff --git a/net/minecraft/util/datafix/DataFixers.java b/net/minecraft/util/datafix/DataFixers.java
-index af0e16945840c62972fa5e7fd53fd8bff15eb88efbd262ade95b00d3f1541741..722b57632fd338c5da6a64d3c04364d3bffcdc30a050d5e6f178e690a7cc01bd 100644
+index 18877c0a8bf5dfd66274ed7608ba9ee9cd90b1f45078bf4a90c9452f00f2c3b2..5f14ee939519fe30376e8f080cd7fa9b1e7941e345ba51f9a31486a83b220958 100644
 --- a/net/minecraft/util/datafix/DataFixers.java
 +++ b/net/minecraft/util/datafix/DataFixers.java
-@@ -1373,7 +1373,7 @@ public class DataFixers {
+@@ -1392,7 +1392,7 @@ public class DataFixers {
                  References.ENTITY,
                  "minecraft:cat",
                  "CatType",
@@ -1923,7 +1914,7 @@ index af0e16945840c62972fa5e7fd53fd8bff15eb88efbd262ade95b00d3f1541741..722b5763
                      m.defaultReturnValue("minecraft:tabby");
                      m.put(0, "minecraft:tabby");
                      m.put(1, "minecraft:black");
-@@ -1417,7 +1417,7 @@ public class DataFixers {
+@@ -1436,7 +1436,7 @@ public class DataFixers {
                  References.ENTITY,
                  "minecraft:frog",
                  "Variant",
@@ -2069,10 +2060,10 @@ index 3b0c4517b5808e3bf8bdd9cda2138c3d8540f0a1bd8eca44ca8ffaa2f44ee7d6..aa27a085
                  );
              }
 diff --git a/net/minecraft/util/filefix/FileFixerUpper.java b/net/minecraft/util/filefix/FileFixerUpper.java
-index 5b08420c9e24485faac37906b2bb3faf88c2c9f724ad259f1f34ca8a6c8d3dda..4e53bb54722f3fd8c599b231258532f96c9433795bc8418e07a80378f9f5377a 100644
+index 721db2f88ba91aba5c439a36186320083e75a0069ba85e42add2f2623a3e3e07..25cbf458abbde8460044abf41e28006451f2d8313d5896003a4cd73e684bb202 100644
 --- a/net/minecraft/util/filefix/FileFixerUpper.java
 +++ b/net/minecraft/util/filefix/FileFixerUpper.java
-@@ -376,15 +376,15 @@ public class FileFixerUpper {
+@@ -387,15 +387,15 @@ public class FileFixerUpper {
                          Files.move(worldFolder, oldWorldFolder, moveOptions);
                      } catch (Exception e) {
                          LOGGER.warn(
@@ -2091,7 +2082,7 @@ index 5b08420c9e24485faac37906b2bb3faf88c2c9f724ad259f1f34ca8a6c8d3dda..4e53bb54
                              );
                          }
                      }
-@@ -394,9 +394,9 @@ public class FileFixerUpper {
+@@ -405,9 +405,9 @@ public class FileFixerUpper {
                      try {
                          Files.move(tempWorldTopLevel, worldFolder, moveOptions);
                      } catch (Exception e) {
@@ -2119,10 +2110,10 @@ index 2a0d3bfc52a8fe33cd81432beac7f308f2dbd8edb44651b8847b97eaa23b4732..f580753d
          }
      );
 diff --git a/net/minecraft/world/attribute/modifier/AttributeModifier.java b/net/minecraft/world/attribute/modifier/AttributeModifier.java
-index 43838b1fbc14c6ca29e95e0c37c4178171ee82dfc2d50396af8b544454984378..40a9d17e359bff3d80cc54cfff4dc497f07636ff44c0a2e21832aea6c3303854 100644
+index dfad1e3e389e03c9139ab8c3b5ac8abc36496ab4331c0ff66e450094bf7f6a74..9e9b46ea0b751e9c976c88a3c1052277e1ac7d80e55c8db48f26ed990705aa81 100644
 --- a/net/minecraft/world/attribute/modifier/AttributeModifier.java
 +++ b/net/minecraft/world/attribute/modifier/AttributeModifier.java
-@@ -73,7 +73,7 @@ public interface AttributeModifier<Subject, Argument> {
+@@ -80,7 +80,7 @@ public interface AttributeModifier<Subject, Argument> {
      );
  
      static <Value> AttributeModifier<Value, Value> override() {
@@ -2130,26 +2121,7 @@ index 43838b1fbc14c6ca29e95e0c37c4178171ee82dfc2d50396af8b544454984378..40a9d17e
 +        return (AttributeModifier<Value, Value>)OverrideModifier.INSTANCE;
      }
  
-     Subject apply(Subject subject, Argument argument);
-diff --git a/net/minecraft/world/attribute/modifier/ColorModifier.java b/net/minecraft/world/attribute/modifier/ColorModifier.java
-index d40fde16c8b2d773329350e55ede781518ccaf23138835ba3dbfa6daa406f2a2..ca8fd9e5f7ede2c1ec22c6b178032fa06efd751d1182012067612529fb964bd3 100644
---- a/net/minecraft/world/attribute/modifier/ColorModifier.java
-+++ b/net/minecraft/world/attribute/modifier/ColorModifier.java
-@@ -25,10 +25,10 @@ public interface ColorModifier<Argument> extends AttributeModifier<Integer, Argu
-             return LerpFunction.ofColor();
-         }
-     };
--    ColorModifier<Integer> ADD = ARGB::addRgb;
--    ColorModifier<Integer> SUBTRACT = ARGB::subtractRgb;
--    ColorModifier<Integer> MULTIPLY_RGB = ARGB::multiply;
--    ColorModifier<Integer> MULTIPLY_ARGB = ARGB::multiply;
-+    ColorModifier<Integer> ADD = (ColorModifier.RgbModifier)ARGB::addRgb;
-+    ColorModifier<Integer> SUBTRACT = (ColorModifier.RgbModifier)ARGB::subtractRgb;
-+    ColorModifier<Integer> MULTIPLY_RGB = (ColorModifier.RgbModifier)ARGB::multiply;
-+    ColorModifier<Integer> MULTIPLY_ARGB = (ColorModifier.ArgbModifier)ARGB::multiply;
-     ColorModifier<ColorModifier.BlendToGray> BLEND_TO_GRAY = new ColorModifier<ColorModifier.BlendToGray>() {
-         public Integer apply(final Integer subject, final ColorModifier.BlendToGray argument) {
-             int multipliedGreyscale = ARGB.scaleRGB(ARGB.greyscale(subject), argument.brightness);
+     static <Element> Map<AttributeModifier.OperationId, AttributeModifier<List<Element>, ?>> listLibrary() {
 diff --git a/net/minecraft/world/attribute/modifier/FloatModifier.java b/net/minecraft/world/attribute/modifier/FloatModifier.java
 index d46cc68637db4db086fd490d1608eae1baaee9c11153ccaba26d31a13ec0dbaf..56ad2f5c4a69877bea2ea7a59d756d5fdac879ea57669c01d3e1834328fec381 100644
 --- a/net/minecraft/world/attribute/modifier/FloatModifier.java
@@ -2233,6 +2205,38 @@ index f848776ad7d5fe069a20a68475dc9a395aa214599746ca06ebc67f8d16225f48..c8224b68
      }
  
      static {
+diff --git a/net/minecraft/world/entity/SteppedInterpolationHandler.java b/net/minecraft/world/entity/SteppedInterpolationHandler.java
+index 6f184ee62e51b9a699558e1d24b6c967972073afcb239b9d193802140725b072..1c4b47e7a918817ef89a8b1e3d7b6ad29b96eb5011a30d39302a32231c227099 100644
+--- a/net/minecraft/world/entity/SteppedInterpolationHandler.java
++++ b/net/minecraft/world/entity/SteppedInterpolationHandler.java
+@@ -128,24 +128,19 @@ public class SteppedInterpolationHandler extends AbstractInterpolationHandler {
+                     this.addStep(pos, yRot, xRot, interpolationSteps);
+                     break;
+                 case PositionPath.Stepped var9: {
+-                    PositionPath.Stepped var10000 = var9;
+-
+                     try {
+-                        var10000.endPosition();
++                        var9.endPosition();
+                     } catch (Throwable var17) {
+                         throw new MatchException(var17.toString(), var17);
+                     }
+ 
+-                    var10000 = var9;
+-
++                    List<PositionStep> steps;
+                     try {
+-                        var24 = var10000.steps();
++                        steps = var9.steps();
+                     } catch (Throwable var16) {
+                         throw new MatchException(var16.toString(), var16);
+                     }
+ 
+-                    List totalInterpolationTicks = var24;
+-                    List<PositionStep> steps = totalInterpolationTicks;
+                     if (yRot == this.yRot() && xRot == this.xRot()) {
+                         for (PositionStep step : steps) {
+                             this.addStep(step.position(), yRot, xRot, step.tickOffset());
 diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
 index cad0c9c749ce876856c902704387626ef2d572d48a00b67c7ef0e5deb80dac44..cc780a28f8049f28e914593432128168ea002edca82c32eccbc9525579782472 100644
 --- a/net/minecraft/world/entity/ai/Brain.java
@@ -2260,10 +2264,10 @@ index 96e38fd148cbdf682ecc5cee5d4f35ba3b3dc6f9e548525b92d836886aa47a32..c206ef76
                                              walkTarget.set(
                                                  new WalkTarget(
 diff --git a/net/minecraft/world/entity/animal/allay/Allay.java b/net/minecraft/world/entity/animal/allay/Allay.java
-index 4ca0635ba514a0c7bfd80917ac2d8d6ab785126dd6797a42a6d2d11f7b8ccc89..2d03a1b9f338e8467fde061447ceeb8c1c64397514c7dcce73ca3e56b82ae15c 100644
+index 34828c0d3884b0819dbc91951a15c4d48bb01042d5984911bdb760203df29d72..c5d88ae12661eaf1ff19c8ebb27a58f13be690b54e5743bfec2f3654e773951f 100644
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
 +++ b/net/minecraft/world/entity/animal/allay/Allay.java
-@@ -136,7 +136,7 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
+@@ -137,7 +137,7 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
  
      @Override
      public Brain<Allay> getBrain() {
@@ -2273,10 +2277,10 @@ index 4ca0635ba514a0c7bfd80917ac2d8d6ab785126dd6797a42a6d2d11f7b8ccc89..2d03a1b9
  
      public static AttributeSupplier.Builder createAttributes() {
 diff --git a/net/minecraft/world/entity/animal/allay/AllayAi.java b/net/minecraft/world/entity/animal/allay/AllayAi.java
-index 253a348c28aa2d2e9d0042a340b2ad33f4df038d67369101a77e11914a911582..e5d75469abe124d7cf924f1090d14c09b23cc1ff6b62a0e52d22074b96bb8099 100644
+index ca7a5cd12a88d61d8969ec22538ae16fbceae0816f9db6cdb7f79b990646400d..b04583716bcb05b5ef1420a3d8377741fb1cb5d008fc8f656a1183f8b1c6327a 100644
 --- a/net/minecraft/world/entity/animal/allay/AllayAi.java
 +++ b/net/minecraft/world/entity/animal/allay/AllayAi.java
-@@ -64,7 +64,7 @@ public class AllayAi {
+@@ -68,7 +68,7 @@ public class AllayAi {
              0,
              ImmutableList.of(
                  new Swim<>(0.8F),
@@ -2285,7 +2289,7 @@ index 253a348c28aa2d2e9d0042a340b2ad33f4df038d67369101a77e11914a911582..e5d75469
                  new LookAtTargetSink(45, 90),
                  new MoveToTargetSink(),
                  new CountDownCooldownTicks(MemoryModuleType.LIKED_NOTEBLOCK_COOLDOWN_TICKS),
-@@ -86,7 +86,7 @@ public class AllayAi {
+@@ -98,7 +98,7 @@ public class AllayAi {
                      AllayAi::getItemDepositPosition, Predicate.not(AllayAi::hasWantedItem), 4, 16, 2.25F
                  ),
                  SetEntityLookTargetSometimes.create(6.0F, UniformInt.of(30, 60)),
@@ -2295,10 +2299,10 @@ index 253a348c28aa2d2e9d0042a340b2ad33f4df038d67369101a77e11914a911582..e5d75469
                          Pair.of(RandomStroll.fly(1.0F), 2),
                          Pair.of(SetWalkTargetFromLookTarget.create(1.0F, 3), 2),
 diff --git a/net/minecraft/world/entity/animal/armadillo/Armadillo.java b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
-index fd5289d4d537ebd32cee02bd583333256265c830e63342896f70b2b857f5d5d0..c9eac893ed9a260666d71d833a8c285d93dc2887dc2405014d8fb74f3bb33cec 100644
+index 17e62132429d4f04f06094a8089bb8fb52bd91e07d95cb1f041a3c3f510501fd..6729ff809afc9b4aaffaa724775dfe185cbeaa391a409615be2920e08bafc514 100644
 --- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
 +++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
-@@ -144,7 +144,7 @@ public class Armadillo extends Animal {
+@@ -145,7 +145,7 @@ public class Armadillo extends Animal {
  
      @Override
      public Brain<Armadillo> getBrain() {
@@ -2321,7 +2325,7 @@ index 5f8b1814b217e034aef5d9c40a690daf2537c3bff4dc8a7a2740850bd8ca0451..582b7df6
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/camel/Camel.java b/net/minecraft/world/entity/animal/camel/Camel.java
-index 98a72d6e84263d374dcb2a4dd7d292919ed6dae9785a8896fb54be681d818c0e..cdc597ef2d4e7044e2be6f0d03308feb2f89c37c3e9873539f88c1ededca4b1d 100644
+index cd5d439d1714e44e79dadc111aee55d3682e3bab71057256499483d5622c4c54..23e1d3fa03521ddc4d453702629056fdb5caf3c6d469ef669d4b1afc31521282 100644
 --- a/net/minecraft/world/entity/animal/camel/Camel.java
 +++ b/net/minecraft/world/entity/animal/camel/Camel.java
 @@ -175,7 +175,7 @@ public class Camel extends AbstractHorse {
@@ -2360,10 +2364,10 @@ index 589a2ffce18ebc4c548b1277a13fce1910f4d837c037f012a3a8e93606243982..c8dde117
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/goat/Goat.java b/net/minecraft/world/entity/animal/goat/Goat.java
-index 23f917d4760971837c6d109edd1b6d7dd2d5940c203062a486a9089a2e5eb8e4..b5f1983ba5fdbd47f0ee6eaf0ea57082cb5af90bb40b499b0e6a6084091ac3a0 100644
+index 7e62e0ada7254e770959872334f5af397fca3ea96a708275fac35241cb52f808..4c5bdcedb4211a1bf2f20b486e26b5e8754aa59809df751e375f921eaec61324 100644
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
-@@ -185,7 +185,7 @@ public class Goat extends Animal {
+@@ -186,7 +186,7 @@ public class Goat extends Animal {
  
      @Override
      public Brain<Goat> getBrain() {
@@ -2373,7 +2377,7 @@ index 23f917d4760971837c6d109edd1b6d7dd2d5940c203062a486a9089a2e5eb8e4..b5f1983b
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/goat/GoatAi.java b/net/minecraft/world/entity/animal/goat/GoatAi.java
-index 360a55b4f52ff24333c39bb311ee16a008259d1e7bce26cd46ba777a2ffd2c46..5495f3b2f42e86ea56654c3496812c54229edebf0b1b08c7d893fda8c4390de6 100644
+index a08933fbae5d1049a5f95a902eeb5f7609596a7ff4200aa950c75e6e8aa15865..ad2500f59c0179903bd019c2a680bb88b3625eec74487aa4d92b51b8c3ced85d 100644
 --- a/net/minecraft/world/entity/animal/goat/GoatAi.java
 +++ b/net/minecraft/world/entity/animal/goat/GoatAi.java
 @@ -75,7 +75,7 @@ public class GoatAi {
@@ -2386,7 +2390,7 @@ index 360a55b4f52ff24333c39bb311ee16a008259d1e7bce26cd46ba777a2ffd2c46..5495f3b2
                  new MoveToTargetSink(),
                  new CountDownCooldownTicks(MemoryModuleType.TEMPTATION_COOLDOWN_TICKS),
 diff --git a/net/minecraft/world/entity/animal/golem/CopperGolem.java b/net/minecraft/world/entity/animal/golem/CopperGolem.java
-index 001cb0d34fa94b683fbdd40321563d51c0eeafe5ed63e4d782ed32671874ec9a..7f26daa6a0897003b400433a883e831f01de0f9258b434f52fa788c4c7e7865c 100644
+index 1c9a85f5705d800b6d50f37699ed29463334b576165599cab48c8f94fde1f981..900d530a94258f8b564708d39c62b0c5bf86814f9a6a18b275672c7ccbc55877 100644
 --- a/net/minecraft/world/entity/animal/golem/CopperGolem.java
 +++ b/net/minecraft/world/entity/animal/golem/CopperGolem.java
 @@ -158,7 +158,7 @@ public class CopperGolem extends AbstractGolem implements ContainerUser, Shearab
@@ -2399,10 +2403,10 @@ index 001cb0d34fa94b683fbdd40321563d51c0eeafe5ed63e4d782ed32671874ec9a..7f26daa6
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/happyghast/HappyGhast.java b/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
-index 0839e1631f95c2700d6db8b4001357046948988cfbbaca91906a14661189ea6b..de9076db1bd340b6aad8e3aabce231d69976ce5fb4179f081838fb11fb7b89d4 100644
+index 407767bfbaebb58c382b621e7aa5139c259983acaf73880803e15123490f6baa..382dca11d3ac1957b418bf994e34cd56b78263ca77244be8048529afd48ceb07 100644
 --- a/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
 +++ b/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
-@@ -438,7 +438,7 @@ public class HappyGhast extends Animal {
+@@ -418,7 +418,7 @@ public class HappyGhast extends Animal {
  
      @Override
      public Brain<HappyGhast> getBrain() {
@@ -2451,10 +2455,10 @@ index e076fac09f65ec8b263d009e55dbfa3fc15642aea3418ec1d3dddf1320d12ef5..107af311
  
      @Override
 diff --git a/net/minecraft/world/entity/animal/sniffer/Sniffer.java b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
-index c66e9e48252c02657b750bb3967a6481a0ff5c9e5aa5434a61f9bc15247b7636..921927e5511027af972d17efb9e36a658dd74271c774f4b205e02274436251e0 100644
+index 9807d2374332560b05f2b33d24686472fe165dc117936aba451879f54a1d63b9..1199c62be2ad4cf3c20efb82768409f41ee48937529c198ebff6a02fbf409c98 100644
 --- a/net/minecraft/world/entity/animal/sniffer/Sniffer.java
 +++ b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
-@@ -515,7 +515,7 @@ public class Sniffer extends Animal {
+@@ -498,7 +498,7 @@ public class Sniffer extends Animal {
  
      @Override
      public Brain<Sniffer> getBrain() {
@@ -2464,10 +2468,10 @@ index c66e9e48252c02657b750bb3967a6481a0ff5c9e5aa5434a61f9bc15247b7636..921927e5
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/Zoglin.java b/net/minecraft/world/entity/monster/Zoglin.java
-index 7236d3c46df2d0dbfb8eeb3f5cf5a8110c3e37874885fe6020f7cf4c9b8b4c5f..cfcefc11e115fdaa0483edc9fb36b1e3e7dad0c1510fa0fea9047d5f0615f639 100644
+index cd3aebc517f267a0f31c78ef7d8339358e3a3177faac44fc938a56049e12223e..da3d46fc5fa0cb35a5ca04cfc8c9bd2b4398d8984910a14bfaf7b4975c1930ea 100644
 --- a/net/minecraft/world/entity/monster/Zoglin.java
 +++ b/net/minecraft/world/entity/monster/Zoglin.java
-@@ -239,7 +239,7 @@ public class Zoglin extends Monster implements HoglinBase {
+@@ -242,7 +242,7 @@ public class Zoglin extends Monster implements HoglinBase {
  
      @Override
      public Brain<Zoglin> getBrain() {
@@ -2477,7 +2481,7 @@ index 7236d3c46df2d0dbfb8eeb3f5cf5a8110c3e37874885fe6020f7cf4c9b8b4c5f..cfcefc11
  
      protected void updateActivity() {
 diff --git a/net/minecraft/world/entity/monster/breeze/Breeze.java b/net/minecraft/world/entity/monster/breeze/Breeze.java
-index fff2258981be533d0fb0c70b38707c8ad987741b71b9c3c42cdff5426944f323..f5172852ae9cc194a9f7cdbd10ab59e611f51bda0a7202bd18f24a64974d5c38 100644
+index 48976beda7595ac18d07673761393258b2744fafe17aba43f04727890898c22a..3ce3bc7afa76b317909d46224900e23d2da0802c4b74ba23745a0088fe59d119 100644
 --- a/net/minecraft/world/entity/monster/breeze/Breeze.java
 +++ b/net/minecraft/world/entity/monster/breeze/Breeze.java
 @@ -86,7 +86,7 @@ public class Breeze extends Monster {
@@ -2490,10 +2494,10 @@ index fff2258981be533d0fb0c70b38707c8ad987741b71b9c3c42cdff5426944f323..f5172852
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/creaking/Creaking.java b/net/minecraft/world/entity/monster/creaking/Creaking.java
-index 434c6438ce682c4aff1073428d3965d9d69b5667a84b18e876c75d279bf87990..b947ef7f4e4d703c82d80deebea2d0b1dc8a431feab2d2e8cf590d2ad1f625da 100644
+index fc679d8bcb124bf8c221c7f4c4a86d7de7ed007df20e7711655f7e4945dfead2..f7a0d0a57c2a5dc964c57adc2595a8d850b94e7a6d62dbcb961554ba46516610 100644
 --- a/net/minecraft/world/entity/monster/creaking/Creaking.java
 +++ b/net/minecraft/world/entity/monster/creaking/Creaking.java
-@@ -211,7 +211,7 @@ public class Creaking extends Monster {
+@@ -212,7 +212,7 @@ public class Creaking extends Monster {
  
      @Override
      public Brain<Creaking> getBrain() {
@@ -2503,10 +2507,10 @@ index 434c6438ce682c4aff1073428d3965d9d69b5667a84b18e876c75d279bf87990..b947ef7f
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/hoglin/Hoglin.java b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
-index cd84f3f693b3dcc6724783e549dc5821b7634ee80578ba50a64c4e76bf2a7f4a..5b1ce23f0e95f91a0dfae5cae184d741b243828118ba764c03f99d79eeb22332 100644
+index cf5ac48f083e4961cdd66800080d95d485119d4fe34d108ca77c374d2a3845c1..45d92e6962e4abfea843851216243258f962d5c52f88e1d46d8938e6bded99c9 100644
 --- a/net/minecraft/world/entity/monster/hoglin/Hoglin.java
 +++ b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
-@@ -145,7 +145,7 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
+@@ -148,7 +148,7 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
  
      @Override
      public Brain<Hoglin> getBrain() {
@@ -2529,10 +2533,10 @@ index 0678596a1eb6393706464688473d2813a9c62d8e7b62e7692297c36fdea8e929..265b3792
              MemoryModuleType.AVOID_TARGET
          );
 diff --git a/net/minecraft/world/entity/monster/piglin/Piglin.java b/net/minecraft/world/entity/monster/piglin/Piglin.java
-index 7b3c0be04b3f1ad9fced2badd42e4530915ccd2c711c2d6cd5ae345e0e3b286f..8176a6531529ef2b8910248255b43b9ca0098f0ff4e09dc05cc47729af55efcf 100644
+index 414348841ac1e6b58d19525877eef239b2b44afb6bd361c7a9d4d635d663c090..ce8a6fa026332e268c3ab1226d8ae5a534df2e44456a866c1f6ca065138ae203 100644
 --- a/net/minecraft/world/entity/monster/piglin/Piglin.java
 +++ b/net/minecraft/world/entity/monster/piglin/Piglin.java
-@@ -244,7 +244,7 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
+@@ -239,7 +239,7 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
  
      @Override
      public Brain<Piglin> getBrain() {
@@ -2542,10 +2546,10 @@ index 7b3c0be04b3f1ad9fced2badd42e4530915ccd2c711c2d6cd5ae345e0e3b286f..8176a653
  
      @Override
 diff --git a/net/minecraft/world/entity/monster/piglin/PiglinAi.java b/net/minecraft/world/entity/monster/piglin/PiglinAi.java
-index e91ccd95bb37818a071ed739f560a03fb57305e748c53cc282659fec9354fe55..ec681c3eb4aa3afe98ff885d3351f15b2b430e24e634bca7ac289a922c331fef 100644
+index e2778dfc570496440d03dfacf6fad118c15f2a2f145fcf2d259ba3f3f0049ac2..54608a8160884797e3da2ff86a0502b825c9bc47d445e5927f536e71278783e3 100644
 --- a/net/minecraft/world/entity/monster/piglin/PiglinAi.java
 +++ b/net/minecraft/world/entity/monster/piglin/PiglinAi.java
-@@ -184,7 +184,7 @@ public class PiglinAi {
+@@ -185,7 +185,7 @@ public class PiglinAi {
                  new SpearAttack(1.0, 1.0, 2.0F),
                  new SpearRetreat(1.0),
                  MeleeAttack.create(20),
@@ -2554,7 +2558,7 @@ index e91ccd95bb37818a071ed739f560a03fb57305e748c53cc282659fec9354fe55..ec681c3e
                  RememberIfHoglinWasKilled.create(),
                  EraseMemoryIf.create(PiglinAi::isNearZombified, MemoryModuleType.ATTACK_TARGET)
              ),
-@@ -208,7 +208,7 @@ public class PiglinAi {
+@@ -209,7 +209,7 @@ public class PiglinAi {
                  BehaviorBuilder.triggerIf(
                      Piglin::isDancing, GoToTargetLocation.create(MemoryModuleType.CELEBRATE_LOCATION, 4, 0.6F)
                  ),
@@ -2563,7 +2567,7 @@ index e91ccd95bb37818a071ed739f560a03fb57305e748c53cc282659fec9354fe55..ec681c3e
                      ImmutableList.of(
                          Pair.of(SetEntityLookTarget.create(EntityTypes.PIGLIN, 8.0F), 1),
                          Pair.of(RandomStroll.stroll(0.6F, 2, 1), 1),
-@@ -241,7 +241,7 @@ public class PiglinAi {
+@@ -242,7 +242,7 @@ public class PiglinAi {
                  SetWalkTargetAwayFrom.entity(MemoryModuleType.AVOID_TARGET, 1.0F, 12, true),
                  createIdleLookBehaviors(),
                  createIdleMovementBehaviors(),
@@ -2572,7 +2576,7 @@ index e91ccd95bb37818a071ed739f560a03fb57305e748c53cc282659fec9354fe55..ec681c3e
              ),
              MemoryModuleType.AVOID_TARGET
          );
-@@ -265,7 +265,7 @@ public class PiglinAi {
+@@ -266,7 +266,7 @@ public class PiglinAi {
                              .build()
                      )
                  ),
@@ -2616,10 +2620,10 @@ index 322d1d45aa02d8342fb19dc70bb9965f3877ba9495fc27f56d0c45a8c33857d1..d0f55087
                                  });
                                  return true;
 diff --git a/net/minecraft/world/entity/monster/warden/Warden.java b/net/minecraft/world/entity/monster/warden/Warden.java
-index a890a7e2068f186172f065f4026010aa3df50634f103c4be754cbbe1ab0a2c83..d835083945988c19056601fe1c983c74c64590988269171ca210b10b031c88fd 100644
+index 3afe270893572cac2634e6a02021195e8d4081eb997852621accf2b1eacf84d1..132d7e9c8f7ae32571c5c7270feaca31ce147bcaf1dc844654db64b3b5d00788 100644
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
-@@ -398,7 +398,7 @@ public class Warden extends Monster implements VibrationSystem {
+@@ -399,7 +399,7 @@ public class Warden extends Monster implements VibrationSystem {
  
      @Override
      public Brain<Warden> getBrain() {
@@ -2629,10 +2633,10 @@ index a890a7e2068f186172f065f4026010aa3df50634f103c4be754cbbe1ab0a2c83..d8350839
  
      @Override
 diff --git a/net/minecraft/world/entity/npc/villager/Villager.java b/net/minecraft/world/entity/npc/villager/Villager.java
-index f3b7ac8f560d06f52126c7385d395dfd7f2c1c44718d7ea5242af17830b867b8..52780a7f80ce531984e045c5e0ed1557d1f4198494dc8f6420ad25ae8e299d34 100644
+index 26bea687a34de5fd28f4107d293efa6271c947be7465085e85651fbaa0584961..a90326241dd2fb2e517c28cd6d5c288167726741d26f8856b406a4b4b00c43c0 100644
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -199,7 +199,7 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
+@@ -195,7 +195,7 @@ public class Villager extends AbstractVillager implements VillagerDataHolder, Re
  
      @Override
      public Brain<Villager> getBrain() {
@@ -2668,10 +2672,10 @@ index 5634d095a4a6fab38d6a3b978dd133f09411ab763b9ec49c99fe0f19a50cac85..91a3e454
      }
  
 diff --git a/net/minecraft/world/item/HoneycombItem.java b/net/minecraft/world/item/HoneycombItem.java
-index b4c07a7839dc7c3704900d3d5bd687697864e6943844b8a1c53d94f095535e73..421f5e29cebe2cc38d25168aee1404f25577f3955e15901756fc4779ced95b01 100644
+index 07f0bb8384f265ab0c55ce85c8fd9871ae5a5da8f7da5946d2fce9cbbbcb2486..8886c856213eb61543b33852cc0e3bdfb7febda8a91fe907fcb025254db814cf 100644
 --- a/net/minecraft/world/item/HoneycombItem.java
 +++ b/net/minecraft/world/item/HoneycombItem.java
-@@ -71,7 +71,7 @@ public class HoneycombItem extends Item implements SignApplicator {
+@@ -74,7 +74,7 @@ public class HoneycombItem extends Item implements SignApplicator {
          BlockPos pos = context.getClickedPos();
          BlockState oldState = level.getBlockState(pos);
          return getWaxed(oldState)
@@ -2698,10 +2702,10 @@ index 9007ced69525223fbce6b96e4f3f955086184e6dd800ca70bb8f5b300cb680ba..34210beb
                  Entity otherEntity = hitResult.getEntity();
                  if (otherEntity instanceof EnderDragonPart dragonPart) {
 diff --git a/net/minecraft/world/item/component/PiercingWeapon.java b/net/minecraft/world/item/component/PiercingWeapon.java
-index 76eeb2644a8bf28248eccc23326ac2835c539d213c0c8b77bbf1b873c94f8ea8..6ffd73cb3d1e8ec7da6b505e3ffb2526105efd329b387418571d6de0f8717cd2 100644
+index a2bdcd7aed6830d174448fad7abd176db095cfc58475232b607926bb08c74d53..fdc1a30106fd679950f9aa6ada260de238a7d061c18730a57863b3a9ed4f7e8f 100644
 --- a/net/minecraft/world/item/component/PiercingWeapon.java
 +++ b/net/minecraft/world/item/component/PiercingWeapon.java
-@@ -113,10 +113,10 @@ public record PiercingWeapon(
+@@ -114,10 +114,10 @@ public record PiercingWeapon(
  
          for (EntityHitResult hitResult : ProjectileUtil.getHitEntitiesAlong(attacker, attackRange, e1 -> {
              return canHitEntity(attacker, e1);
@@ -2715,7 +2719,7 @@ index 76eeb2644a8bf28248eccc23326ac2835c539d213c0c8b77bbf1b873c94f8ea8..6ffd73cb
              hitSomething |= attacker.stabAttack(
                  hand, hitResult.getEntity(), damage, true, this.dealsKnockback, this.dismounts
 diff --git a/net/minecraft/world/item/crafting/RecipeMap.java b/net/minecraft/world/item/crafting/RecipeMap.java
-index b5a4b7cd120ce2925d407ba9585028467c681b47a8b8ec79d195b364b09d7d1a..ea0111973af71c5af544035f90a39725427a42af344ff3099079524a00f5e854 100644
+index 9bbaee8ae296d0167b8664ee79b335782b58b0889011a09accba61f8ca2bc45b..120796c7a44a6665fc79c6a9d8fd0e557feebe2392d8947d29d502845a9fed16 100644
 --- a/net/minecraft/world/item/crafting/RecipeMap.java
 +++ b/net/minecraft/world/item/crafting/RecipeMap.java
 @@ -36,7 +36,7 @@ public class RecipeMap {
@@ -2728,23 +2732,23 @@ index b5a4b7cd120ce2925d407ba9585028467c681b47a8b8ec79d195b364b09d7d1a..ea011197
  
      public Collection<RecipeHolder<?>> values() {
 diff --git a/net/minecraft/world/level/biome/Climate.java b/net/minecraft/world/level/biome/Climate.java
-index 2469b0a774db35cc0263bc44420f0979e9c5f24d66dcc533732b9dff2ccf0031..ad5cd20af1ccefcb40f6bc70093ecd99c1e9713128fb98f6f479aa3370fd01a5 100644
+index e8fa4dc9e74edb9c522713a68354d0229cdc729381cedcdedc94ed138dc6db26..6fa0581ef65fd4fa230004c1f41f7a79d699e4a9e86fc56d88ac876b864fd2c8 100644
 --- a/net/minecraft/world/level/biome/Climate.java
 +++ b/net/minecraft/world/level/biome/Climate.java
-@@ -309,7 +309,7 @@ public class Climate {
+@@ -305,7 +305,7 @@ public class Climate {
              }
  
              List<Climate.RTree.Leaf<T>> leaves = values.stream().map(p -> {
 -                return new Climate.RTree.Leaf(p.getFirst(), p.getSecond());
 +                return new Climate.RTree.Leaf<>(p.getFirst(), p.getSecond());
              }).collect(Collectors.toCollection(ArrayList::new));
-             return new Climate.RTree<>(build(dimensions, leaves));
+             return new Climate.RTree<>(build(dimensions, leaves, childrenPerNode));
          }
 diff --git a/net/minecraft/world/level/block/BaseEntityBlock.java b/net/minecraft/world/level/block/BaseEntityBlock.java
-index b4a380d26ff0bdbd230fcae72548d5e17d672f8a3cb4377dcf3f867693c7fb8b..7748d72ecf510951d62828907febe6d0894d189e340325becff57500ad698401 100644
+index a26d30be528d3a36ae47fe4b26909b14423b7b03cae2c316ad8b873b48a38a8e..328b527e3bfb96c9045e16a68e0877221f476c49a6ad88b2a8bfcd1e9bc4f655 100644
 --- a/net/minecraft/world/level/block/BaseEntityBlock.java
 +++ b/net/minecraft/world/level/block/BaseEntityBlock.java
-@@ -38,6 +38,6 @@ public abstract class BaseEntityBlock extends Block implements EntityBlock {
+@@ -34,6 +34,6 @@ public abstract class BaseEntityBlock extends Block implements EntityBlock {
          final BlockEntityType<E> expected,
          final @Nullable BlockEntityTicker<? super E> ticker
      ) {
@@ -2753,10 +2757,10 @@ index b4a380d26ff0bdbd230fcae72548d5e17d672f8a3cb4377dcf3f867693c7fb8b..7748d72e
      }
  }
 diff --git a/net/minecraft/world/level/block/Block.java b/net/minecraft/world/level/block/Block.java
-index 6e44e24c451f482ccf7a6ccdd8e091b0b9eebc4376aa12b0462d0c0ead10e8f7..d6c6499027763623147b2cde3f54480e76031db3b951a2e1064644c346c32941 100644
+index f302191e7ef0fd279440370f809ee707bfc82614b57e9528504d81003069e248..30805ac033219cc2e7006ee083ab450e0ec8a28bb4f24ca33f4cd9331374ca83 100644
 --- a/net/minecraft/world/level/block/Block.java
 +++ b/net/minecraft/world/level/block/Block.java
-@@ -688,7 +688,7 @@ public class Block extends BlockBehaviour implements ItemLike {
+@@ -690,7 +690,7 @@ public class Block extends BlockBehaviour implements ItemLike {
      private static <S extends StateHolder<?, S>, T extends Comparable<T>> S setValueHelper(
          final S state, final Property<T> property, final Object value
      ) {
@@ -2766,7 +2770,7 @@ index 6e44e24c451f482ccf7a6ccdd8e091b0b9eebc4376aa12b0462d0c0ead10e8f7..d6c64990
  
      @Deprecated
 diff --git a/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java b/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
-index 43951bc5288d8aefebaae60530242dc0560dbcb30577b0de54db9b4749e83dd9..7b57186849e1583814cf6b96425a4bb1f2b57a1dcb7883d2058a899a78d3cb63 100644
+index 5fdfe1fde3b3d16777b7d71ea6e64106ecfe0bc6759de82ca1856c09bcd4ca21..fee9b158cccc560cb12f934d44dcff1955dd2c844fab27bc250054d856f6468d 100644
 --- a/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/TestInstanceBlockEntity.java
 @@ -126,7 +126,7 @@ public class TestInstanceBlockEntity extends BlockEntity implements BoundingBoxR
@@ -2779,18 +2783,18 @@ index 43951bc5288d8aefebaae60530242dc0560dbcb30577b0de54db9b4749e83dd9..7b571868
          }).orElse(INVALID_TEST_NAME);
      }
 diff --git a/net/minecraft/world/level/dimension/end/EnderDragonFight.java b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
-index 8f0f5c90cf3b17718a5e07fdc848be6b7d12e33ffe520b68da9d854aca71d503..1cee68335d3042d9b925d193fb730c83de267c2851e26ba612f8d3057663cd6c 100644
+index 82bed4c20893eb70c281de95d99f7a75f21339f3dc19c535c68a94cc99e0a42a..7ca86dcbfbf2b1a4cf29958ef5da93fb047702408b6c33e42cbf50592b0600ea 100644
 --- a/net/minecraft/world/level/dimension/end/EnderDragonFight.java
 +++ b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
-@@ -55,6 +55,7 @@ import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
+@@ -56,6 +56,7 @@ import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
  import net.minecraft.world.level.block.state.predicate.BlockPredicate;
  import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
 +import net.minecraft.world.level.entity.UniquelyIdentifyable;
  import net.minecraft.world.level.levelgen.Heightmap;
- import net.minecraft.world.level.levelgen.feature.EndPodiumFeature;
  import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
-@@ -131,7 +132,7 @@ public class EnderDragonFight extends SavedData {
+ import net.minecraft.world.level.levelgen.feature.Feature;
+@@ -132,7 +133,7 @@ public class EnderDragonFight extends SavedData {
                      Codec.list(Codec.INT).lenientOptionalFieldOf("gateways", new ArrayList<>()).forGetter(fight -> {
                          return fight.gateways;
                      }),
@@ -2813,31 +2817,31 @@ index 846d6c0df142c6bb8f30f332fd1f26c9d3d8597a67fda69b05eea3db310d3d1a..165e662d
          Identifier.withDefaultNamespace("game_rules"), GameRuleMap::of, CODEC, DataFixTypes.SAVED_DATA_GAME_RULES
      );
 diff --git a/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java b/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java
-index 4bfea6b7115c3743955155b2ab7c8ae3964143e64676a4e6bee95d90259b57c7..d391390f455e57de16d64cc040ffb9ab663f4f857bd341a3fc513aac128460e0 100644
+index fc630f36216220eef1c2b29eb81f627fac665510373613b1fe5d76eb42a83a75..f61079e0301520866a4edbf740115579de0fcf9928d4e6dfbb5e6ad3a04d8244 100644
 --- a/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java
 +++ b/net/minecraft/world/level/levelgen/feature/MultifaceGrowthFeature.java
-@@ -27,7 +27,7 @@ public class MultifaceGrowthFeature extends Feature<MultifaceGrowthConfiguration
-         } else if (!(config.placeBlock instanceof MultifaceSpreadeableBlock placerBlock)) {
+@@ -86,7 +86,7 @@ public record MultifaceGrowthFeature(
+         } else if (!(this.placeBlock instanceof MultifaceSpreadeableBlock placerBlock)) {
              return false;
          } else {
--            List var14 = config.getShuffledDirections(random);
-+            List<Direction> var14 = config.getShuffledDirections(random);
-             if (placeGrowthIfPossible(placerBlock, level, origin, level.getBlockState(origin), config, random, var14)) {
+-            List var13 = this.getShuffledDirections(random);
++            List<Direction> var13 = this.getShuffledDirections(random);
+             if (this.placeGrowthIfPossible(placerBlock, level, origin, level.getBlockState(origin), random, var13)) {
                  return true;
              }
-diff --git a/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java b/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java
-index 1ac923a6f413a0ba671a0325724111f2987598f64b1dfb1a78909af0835b4176..96019adc535a7a91e7e0d70aab4cab10d62ae6373cb6675d1bd7bb78e35d5f38 100644
---- a/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java
-+++ b/net/minecraft/world/level/storage/loot/functions/SetCustomModelDataFunction.java
-@@ -20,7 +20,7 @@ import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+diff --git a/net/minecraft/world/level/storage/loot/LootContextArg.java b/net/minecraft/world/level/storage/loot/LootContextArg.java
+index 560c7f94ae2feaca5052cd9339359765959912b79475796a9a52411efab02433..c320bc0d58d4b4ff56395ebcc0d2ce4f61e694a7fb52288beb8ab6d798323420 100644
+--- a/net/minecraft/world/level/storage/loot/LootContextArg.java
++++ b/net/minecraft/world/level/storage/loot/LootContextArg.java
+@@ -25,7 +25,7 @@ public interface LootContextArg<R> {
+     }
  
- public class SetCustomModelDataFunction extends LootItemConditionalFunction {
-     private static final Codec<NumberProvider> COLOR_PROVIDER_CODEC = Codec.withAlternative(
--        NumberProviders.CODEC, ExtraCodecs.RGB_COLOR_CODEC, ConstantValue::new
-+        NumberProviders.CODEC, ExtraCodecs.RGB_COLOR_CODEC, integer-> new ConstantValue(integer)
-     );
-     public static final MapCodec<SetCustomModelDataFunction> MAP_CODEC = RecordCodecBuilder.mapCodec(
-         i -> {
+     static <R> LootContextArg<R> of(final ContextKey<? extends R> contextParam) {
+-        return () -> {
++        return (SimpleGetter<R>)() -> {
+             return contextParam;
+         };
+     }
 diff --git a/net/minecraft/world/level/storage/loot/predicates/EnvironmentAttributeCheck.java b/net/minecraft/world/level/storage/loot/predicates/EnvironmentAttributeCheck.java
 index e061ddb4f748a1b6cfbb8d73e58289cd5162108b464da4e130f5217762912e6c..d58deb301f73cb794ad838ac2d495d3623811eadcc430446e2f48bfb42463606 100644
 --- a/net/minecraft/world/level/storage/loot/predicates/EnvironmentAttributeCheck.java
@@ -2853,16 +2857,3 @@ index e061ddb4f748a1b6cfbb8d73e58289cd5162108b464da4e130f5217762912e6c..d58deb30
      }
  
      @Override
-diff --git a/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java b/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java
-index 98ba7a32967c8520af117f570e6bec9cfe237ede8708d8abc3ee80d2cf19d32a..a1617e0948a29d3c659c59fd7c78852a4fd4f6cd55b94ceb436d67c899cddee2 100644
---- a/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java
-+++ b/net/minecraft/world/level/storage/loot/predicates/LootItemBlockStatePropertyCondition.java
-@@ -38,7 +38,7 @@ public record LootItemBlockStatePropertyCondition(Holder<Block> block, Optional<
-         return condition.properties().flatMap(properties -> {
-             return properties.checkState(condition.block().value().getStateDefinition());
-         }).map(name -> {
--            return DataResult.error(() -> {
-+            return DataResult.<LootItemBlockStatePropertyCondition>error(() -> {
-                 return "Block " + condition.block() + " has no property" + name;
-             });
-         }).orElse(DataResult.success(condition));

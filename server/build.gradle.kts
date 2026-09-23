@@ -19,7 +19,7 @@ dependencies {
 }
 
 application {
-    mainClass = "hayanesuru.vincetoxicum.Bootstrap"
+    mainClass = "co.hayane.vincetoxicum.Bootstrap"
 }
 
 tasks.named<JavaExec>("run") {
@@ -60,7 +60,7 @@ repositories {
 sourceSets {
     main {
         java {
-            srcDir("vincetoxicum")
+            srcDir("hayane")
         }
     }
 }

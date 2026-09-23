@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Unlicense
-package hayanesuru.vincetoxicum;
+package co.hayane.vincetoxicum;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.CrashReport;
@@ -7,7 +7,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.Main;
 import org.slf4j.Logger;
 
-public class Bootstrap {
+public final class Bootstrap {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static void main(String[] args) {

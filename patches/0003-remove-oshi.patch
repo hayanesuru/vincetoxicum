@@ -31,7 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <https://unlicense.org>
 
 diff --git a/net/minecraft/SystemReport.java b/net/minecraft/SystemReport.java
-index 0c64be90c67fa059f12178c0595779d43f0067ef59887da820c452aa571f9b13..114126963a867dbe28fc084d036d96e1b907b5a0180d3219bb2180b90906054b 100644
+index 4387a91de0349c696533aa630240d9628b9bb25f1a73171a3a3928db4b1a2138..5497dc6fd08cf9ebd277f4360727c547dc742e147f4cfb4b32c5e527b9137735 100644
 --- a/net/minecraft/SystemReport.java
 +++ b/net/minecraft/SystemReport.java
 @@ -17,16 +17,18 @@ import java.util.function.Supplier;
@@ -371,10 +371,10 @@ index 0c64be90c67fa059f12178c0595779d43f0067ef59887da820c452aa571f9b13..11412696
      private void putSpaceForProperty(final String env) {
          this.putSpaceForPath(env, () -> {
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index ef65a090169f787916678152eb4929250cb72d2b7eb3ba474a7785293d9ef41a..fc3952285907a45db2f4e92f75aceb0a1e334f3fe63c663c2fda65fe650751fa 100644
+index 871823cf94934de86f5e0de457729513abf9920b9d64bb0dc96fec60ce435577..2e9d9336f7d3d494e716e12c7105233e2d410bc57ea0b08dd9958f3a8df4bb53 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -2123,22 +2123,24 @@ public abstract class MinecraftServer
+@@ -2082,22 +2082,24 @@ public abstract class MinecraftServer
      }
  
      private void dumpNativeModules(final Path path) throws IOException {

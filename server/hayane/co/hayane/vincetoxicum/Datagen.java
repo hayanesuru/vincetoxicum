@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Unlicense
-package hayanesuru.vincetoxicum;
+package co.hayane.vincetoxicum;
 
 import com.mojang.serialization.Lifecycle;
 import net.minecraft.SharedConstants;
@@ -92,9 +92,9 @@ public final class Datagen {
                         var noDatapackDimensions = new MappedRegistry<>(
                             Registries.LEVEL_STEM, Lifecycle.stable()
                         ).freeze();
-                        var worldDimensions = context.datapackWorldgen()
+                        var worldDimensions = context.datapackWorldRegistries()
                             .lookupOrThrow(Registries.WORLD_PRESET)
-                            .getOrThrow(WorldPresets.FLAT)
+                            .getOrThrow(WorldPresets.FLAT_ALL_DIMENSIONS)
                             .value()
                             .createWorldDimensions();
                         var dimensions = worldDimensions.bake(noDatapackDimensions);
