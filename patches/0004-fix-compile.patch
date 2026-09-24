@@ -93,19 +93,10 @@ index 03284f42c8dc9c2c9f2ddaef80371c8fb93e1643c3bcf05e035c4eea69ddea51..ab82fd3b
                  this.type,
                  Optics.proj1()
 diff --git a/com/mojang/datafixers/NamedChoiceFinder.java b/com/mojang/datafixers/NamedChoiceFinder.java
-index cb0feb8b37523ccf1d2900494b2c8482fb8f321334d806ccd5700c3fd4a4379f..dd89c78cd13a6cfe6f249cf976e7d0761aeb09562228433047fadcb559288a40 100644
+index cb0feb8b37523ccf1d2900494b2c8482fb8f321334d806ccd5700c3fd4a4379f..5e890e650704ce9c0439bb541beeb64f05e21165335905279334ba83f6094c46 100644
 --- a/com/mojang/datafixers/NamedChoiceFinder.java
 +++ b/com/mojang/datafixers/NamedChoiceFinder.java
-@@ -6,6 +6,8 @@ import com.mojang.datafixers.types.templates.TaggedChoice;
- import com.mojang.datafixers.util.Either;
- import java.util.Objects;
- 
-+import static com.mojang.datafixers.TypedOptic.tagged;
-+
- final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
-     private final String name;
-     private final Type<FT> type;
-@@ -59,7 +61,8 @@ final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
+@@ -59,7 +59,8 @@ final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
  
          @Override
          public <S> Either<TypedOptic<S, ?, FT, FR>, Type.FieldNotFoundException> match(Type<S> targetType) {
@@ -115,12 +106,12 @@ index cb0feb8b37523ccf1d2900494b2c8482fb8f321334d806ccd5700c3fd4a4379f..dd89c78c
                  Type<?> elementType = choiceType.types().get(this.name);
                  if (elementType != null) {
                      return !Objects.equals(this.type, elementType)
-@@ -73,12 +76,12 @@ final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
+@@ -73,12 +74,12 @@ final class NamedChoiceFinder<FT> implements OpticFinder<FT> {
                                  )
                              )
                          )
 -                        : Either.left(TypedOptic.tagged(choiceType, this.name, this.type, this.resultType));
-+                        : Either.left((TypedOptic<S, ?, FT, FR>)tagged((TaggedChoice.TaggedChoiceType<String>)choiceType, this.name, this.type, this.resultType));
++                        : Either.left((TypedOptic<S, ?, FT, FR>)com.mojang.datafixers.TypedOptic.tagged((TaggedChoice.TaggedChoiceType<String>)choiceType, this.name, this.type, this.resultType));
                  } else {
                      return Either.right(new Type.Continue());
                  }
